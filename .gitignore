@@ -13,3 +13,5 @@ dist/
 artifacts/
 references/local/
 .DS_Store
+
+.matplotlib-cache/

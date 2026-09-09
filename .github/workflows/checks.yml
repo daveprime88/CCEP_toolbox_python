@@ -33,17 +33,26 @@ jobs:
       - run: uv run --no-sync black --check .
       - run: uv run --no-sync pytest
   gui-imaging:
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        python: ['3.11']
+        include:
+          - os: ubuntu-latest
+            python: '3.13'
+    runs-on: ${{ matrix.os }}
     env:
       QT_QPA_PLATFORM: offscreen
       ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS: '1'
-      MPLCONFIGDIR: /tmp/ccep-matplotlib
+      MPLCONFIGDIR: ${{ github.workspace }}/.matplotlib-cache
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v6
         with:
-          python-version: '3.11'
-      - run: sudo apt-get update && sudo apt-get install -y libegl1 libopengl0
+          python-version: ${{ matrix.python }}
+      - if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libegl1 libopengl0
       - run: uv sync --locked --extra gui --extra imaging --group gui-tests
       - run: uv run --no-sync python tools/check.py
   package:
@@ -61,3 +70,21 @@ jobs:
         with:
           name: distributions
           path: dist/*
+
+  registration-benchmark:
+    runs-on: ubuntu-latest
+    env:
+      ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS: '1'
+      MPLCONFIGDIR: ${{ github.workspace }}/.matplotlib-cache
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: '3.11'
+      - run: uv sync --locked --extra imaging --group imaging-benchmarks
+      - run: uv run --no-sync python tools/benchmark_registration.py --output artifacts/ci-registration --repeats 2 --sitk-bounded-step --require-success
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: synthetic-registration-study
+          path: artifacts/ci-registration

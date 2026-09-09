@@ -279,6 +279,11 @@ def main() -> None:
         action="store_true",
         help="Exploratory second recipe: estimate each iteration, 1mm step scale, line-search upper factor2",
     )
+    parser.add_argument(
+        "--require-success",
+        action="store_true",
+        help="Exit nonzero if any engine fails; preserve all study artifacts",
+    )
     args = parser.parse_args()
     if args.output.exists():
         parser.error("Output must not already exist; retain separate experiments")
@@ -384,6 +389,11 @@ def main() -> None:
         }
         study["cases"].append(case)
         (args.output / "results.json").write_text(json.dumps(study, indent=2) + "\n")
+
+    if args.require_success and any(
+        run["status"] != "completed" for case in study["cases"] for run in case["runs"]
+    ):
+        raise SystemExit("One or more registrations failed; inspect results.json")
 
 
 if __name__ == "__main__":

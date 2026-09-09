@@ -50,6 +50,12 @@ With uv, launch using `uv run --no-sync ccep-gui` and view commands with
 and `ccep` directly.
 A generated end-to-end example is in [the CLI guide](docs/cli.md).
 
+The imaging candidate includes registration, verified image/contact transforms and
+an explicit six-tissue normalization workflow. Read the
+[SPM12 replacement trade study](docs/research/spm12_python_trade_study.md) and
+[ANTsPy–SimpleITK synthetic comparisons](docs/research/registration_benchmarks.md)
+for the backend choice, measured results and remaining scientific validation.
+
 The library installation is `python -m pip install -e .`. Python 3.14 core/GUI
 installation was tested with pip-style dependency resolution; the current full
 uv lock includes ANTsPy's older SciPy constraint and is for Python 3.11 development. The GUI extra includes NIfTI review; the optional `imaging`
