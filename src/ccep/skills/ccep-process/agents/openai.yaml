@@ -1,0 +1,4 @@
+interface:
+  display_name: "Process CCEP recordings"
+  short_description: "Run explicit CCEP analyses and verify exported results"
+  default_prompt: "Use $ccep-process to inspect my recording, validate my analysis configuration, process it, and export the results."

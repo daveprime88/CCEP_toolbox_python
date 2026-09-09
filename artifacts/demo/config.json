@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "recording": "recording.edf",
+  "annotations": "annotations.json",
+  "reference": "bipolar",
+  "channels": [
+    "A1-A2"
+  ],
+  "trains": [
+    {
+      "name": "Synthetic train",
+      "frequency_hz": 0.5,
+      "annotation_window": [
+        2500,
+        14000
+      ]
+    }
+  ],
+  "filtering": {
+    "enabled": true,
+    "highpass_hz": 1,
+    "lowpass_hz": 300,
+    "notch_hz": [
+      48,
+      52
+    ]
+  },
+  "baseline_windows": [
+    [
+      16000,
+      16200
+    ],
+    [
+      17000,
+      17200
+    ],
+    [
+      18000,
+      18200
+    ]
+  ]
+}

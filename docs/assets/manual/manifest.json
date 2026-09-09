@@ -1,0 +1,29 @@
+{
+  "source_sha256": "7a4f09fe221190ff1fbc1091099d54423737b216874626575c2707fc68c09714",
+  "images": [
+    {
+      "file": "image1.PNG",
+      "sha256": "a307fc99526cb9557f868b6040ff33647d6b304af22e307c71bda60e19bf7f66"
+    },
+    {
+      "file": "image2.png",
+      "sha256": "bfb2a77b4794052dcbff548dad3602e21b9a3fced22c0e8e8b3697c81893f323"
+    },
+    {
+      "file": "image3.png",
+      "sha256": "1ee99e2a602b470ef3fa9594124ecbe536a67c21eb5592522effd393ad05d732"
+    },
+    {
+      "file": "image4.PNG",
+      "sha256": "e4c0039bf9145b96dd9e365b0b8dcde164cfcc8a29b0c0fe8885817acf279dc9"
+    },
+    {
+      "file": "image5.PNG",
+      "sha256": "f321312048154425c0fe9a9ce9242e256259eabf22a9560b0cea729edb7ae49c"
+    },
+    {
+      "file": "image6.PNG",
+      "sha256": "88d4cfd67591ba0a1c853757480a2bc65187f225e8d84ce144ee97ea447e4fc6"
+    }
+  ]
+}

@@ -1,0 +1,58 @@
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[project]
+name = "ccep-toolbox"
+version = "0.1.0.dev0"
+description = "A scientific Python port of the CCEP Toolbox"
+readme = "README.md"
+requires-python = ">=3.11,<3.15"
+license = "GPL-3.0-or-later"
+authors = [{name = "David Prime"}]
+classifiers = [
+  "Development Status :: 2 - Pre-Alpha",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
+  "Topic :: Scientific/Engineering :: Medical Science Apps.",
+]
+dependencies = ["numpy>=1.26", "scipy>=1.12", "pydantic>=2.10", "typer>=0.27.2,<0.28", "h5py>=3.12", "openpyxl>=3.1"]
+
+[project.scripts]
+ccep = "ccep.cli:main"
+ccep-gui = "ccep.gui.app:main"
+
+[project.optional-dependencies]
+gui = ["PySide6>=6.8", "matplotlib>=3.9", "nibabel>=5.3"]
+imaging = ["antspyx>=0.6.3", "nibabel>=5.3"]
+
+[dependency-groups]
+dev = ["pytest>=8.3", "ruff>=0.11", "black>=25.1", "pyright>=1.1.400", "pre-commit>=4.2", "build>=1.2"]
+
+gui-tests = ["pytest-qt>=4.4"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/ccep"]
+
+[tool.black]
+target-version = ["py311"]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 88
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "I", "UP", "B"]
+
+[tool.pyright]
+include = ["src"]
+pythonVersion = "3.11"
+typeCheckingMode = "standard"
+reportMissingTypeStubs = false
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"
+markers = ["gui: Qt interaction tests (requires gui extra)", "imaging: ANTs backend tests (requires imaging extra)", "reference: requires captured MATLAB artifacts"]

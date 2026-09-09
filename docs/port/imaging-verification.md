@@ -1,0 +1,59 @@
+# Imaging implementation and evidence
+
+`ccep.imaging.geometry` provides zero-based voxel/RAS+ mm affine transforms,
+RAS↔LPS conversion, endpoint contact interpolation, nearest-neighbour sampling,
+a native 1.5 mm sphere, threshold centroid extraction and an explicit absolute
+SPM-style pull-field evaluator. Oblique-affine and identity-field tests check
+geometry independently of ANTs.
+
+`ccep.imaging.ants_backend` executes rigid/affine/SyN registration, N4 plus
+six-prior Atropos segmentation, and sphere warping onto an explicit 1 mm target
+grid. The caller supplies images, masks, six ordered priors, templates and target
+grids. No atlas download, implicit class identification or SPM fallback occurs.
+Output files and manifests preserve backend/settings/input identities.
+
+Local macOS/Python 3.11 tests execute ANTsPy 0.6.3: identity registration on an
+asymmetric synthetic volume, sphere centroid preservation and six-class prior
+segmentation with probability sums. These are execution/geometry checks, not
+SPM scientific acceptance.
+
+ANTsPy 0.6.3's installed registration implementation reads its package random
+seed configuration; the older `random_seed` kwarg is ignored. Registration calls
+through this module are serialized, use the current deterministic configuration,
+and restore Python/NumPy RNG state and environment settings afterward. External
+concurrent calls directly into ANTs are not coordinated by this module. Run
+imaging jobs in separate processes when mixing third-party ANTs code.
+
+On 9 September 2026 an isolated Python 3.14 installation succeeded for core/Qt,
+but `uv pip install --only-binary=:all: --dry-run antspyx` reported no usable wheel.
+No native source build was attempted. Full 3.14 imaging support remains a release
+blocker; the agreed version target has not been relaxed.
+
+Remaining: matched MRI/CT/SPM reference cases, fitted parameter choices and
+scientific acceptance limits, registration/segmentation outcomes, deformation
+session compatibility, exact MarsBaR sphere rasterization, tissue shape sampling,
+atlas labels and all interactive imaging workflows. No current test certifies
+those obligations.
+
+## Native review and command integration
+
+The native image viewer and JSON session now support slice/cursor review,
+physical-space overlays, contact endpoint acquisition, interpolation and CSV
+export. Tests use a reflected, anisotropic affine and assert coordinates and
+plotted arrays. They also check session input hashes and overlay visibility.
+The viewer preserves array orientation and labels voxel axes; public contact
+coordinates use the image's RAS affine in millimetres.
+
+Image processing currently requires an explicit `mm` header and a finite,
+nonsingular 3D affine. Unknown-unit, metre/micron and Analyze imports are rejected
+until a reviewed unit/geometry adapter exists; they are remaining compatibility
+work, not silently interpreted as millimetres. `image-inspect` reports declared
+units without rewriting an image. Native image review works on Python 3.14
+without ANTs; registration and segmentation still require ANTs.
+
+CLI commands expose image inspection, rigid/affine/SyN registration, six-prior
+segmentation and contact export. A real registration subprocess test checks JSON
+stdout and exact reproducibility against the API on the synthetic fixture.
+Registration/segmentation GUI controls, manual reorientation and all legacy
+imaging-session workflows remain unfinished. Synthetic checks do not replace
+SPM outcome comparisons.
