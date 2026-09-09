@@ -17,6 +17,8 @@ from typing import Any, Literal, cast
 import numpy as np
 
 from ccep.imaging.images import load_spatial_mm
+from ccep.imaging.settings import RegistrationSettings
+from ccep.imaging.transforms import capture_bundle, read_ants_mm
 from ccep.reference import sha256
 
 _REGISTRATION_LOCK = RLock()
@@ -45,8 +47,12 @@ def register(
     *,
     transform: Literal["Rigid", "Affine", "SyN"] = "Rigid",
     seed: int = 1729,
+    settings: RegistrationSettings | None = None,
 ) -> Registration:
     """Resample moving image into fixed image space; never overwrite source images."""
+    settings = settings or RegistrationSettings()
+    if not 0 <= seed < 2**32:
+        raise ValueError("Seed must fit an unsigned 32-bit integer")
     if transform not in {"Rigid", "Affine", "SyN"}:
         raise ValueError("Unsupported registration transform")
     if output.exists():
@@ -54,9 +60,7 @@ def register(
     load_spatial_mm(fixed)
     load_spatial_mm(moving)
     ants = _ants()
-    fixed_image, moving_image = ants.image_read(str(fixed)), ants.image_read(
-        str(moving)
-    )
+    fixed_image, moving_image = read_ants_mm(fixed), read_ants_mm(moving)
     if fixed_image.dimension != 3 or moving_image.dimension != 3:
         raise ValueError("Registration requires 3D volumes")
     output.mkdir(parents=True)
@@ -71,7 +75,7 @@ def register(
                 fixed=fixed_image,
                 moving=moving_image,
                 type_of_transform=transform,
-                aff_metric="mattes",
+                **settings.arguments(),
                 outprefix=str(output / "registration_"),
                 verbose=False,
             )
@@ -87,11 +91,14 @@ def register(
     ants.image_write(result["warpedmovout"], str(warped))
     forward = tuple(Path(p).resolve() for p in result["fwdtransforms"])
     inverse = tuple(Path(p).resolve() for p in result["invtransforms"])
+    bundle = capture_bundle(fixed, moving, forward, inverse, output)
+    bundle_path = output / "transforms.json"
+    bundle_path.write_text(bundle.model_dump_json(indent=2) + "\n")
     manifest = output / "registration.json"
     manifest.write_text(
         json.dumps(
             dict(
-                schema_version=1,
+                schema_version=2,
                 backend="ANTsPy",
                 version=ants.__version__,
                 fixed_sha256=sha256(fixed),
@@ -101,9 +108,12 @@ def register(
                 image_mapping="moving-to-fixed via ANTs apply_transforms",
                 world_coordinates="ANTs LPS mm; public geometry uses RAS mm",
                 transform=transform,
-                aff_metric="mattes",
+                settings=settings.model_dump(mode="json"),
+                initialization=settings.initialization,
                 seed=seed,
                 threads=1,
+                transform_bundle="transforms.json",
+                transform_bundle_sha256=sha256(bundle_path),
                 forward=[str(p) for p in forward],
                 inverse=[str(p) for p in inverse],
                 artifacts={p.name: sha256(p) for p in {warped, *forward, *inverse}},

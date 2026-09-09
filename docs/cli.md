@@ -88,3 +88,30 @@ acceptance. Inspect/contact export and native image review only require the GUI
 extra's NIfTI dependency. Processing accepts explicit millimetre image headers;
 unknown-unit and Analyze import adapters remain to be verified. Overlay display
 resamples using existing physical coordinates; it does not estimate alignment.
+
+### Verified imaging transforms
+
+`image-register FIXED MOVING OUTPUT [--transform Rigid|Affine|SyN] [--settings recipe.json]`
+now writes `transforms.json` alongside registration provenance. A settings JSON
+uses the typed `RegistrationSettings` fields; omitted fields preserve the earlier
+ANTs candidate defaults. All resolved settings are saved. These defaults are not
+SPM's NMI/optimizer recipe.
+
+```bash
+ccep --json image-apply registration/transforms.json associated.nii.gz fixed.nii.gz warped.nii.gz
+ccep --json image-apply registration/transforms.json atlas.nii.gz native.nii.gz native_atlas.nii.gz --direction fixed-to-moving --labels
+ccep --json image-transform-points registration/transforms.json contacts.json normalized_contacts.json
+```
+
+Point input is a JSON array of `[x,y,z]` in RAS+ millimetres. Direction names always
+refer to anatomical source/destination, for both image and point commands; the
+adapter handles ANTs' opposite point convention. The bundle records ordered,
+relative, checksummed artifacts and explicit affine inversion, including an
+inverse chain containing only one affine. Copy the complete registration folder
+to relocate it. Schema-1 `registration.json` alone is not a transform bundle;
+recapture it with the updated registration API instead of guessing inversions.
+
+Associated images must match the source grid and the reference must match the
+target grid. Intensity/probability interpolation is linear; `--labels` uses
+`genericLabel`. Headers must declare mm, and conflicting qform/sform, shear,
+nonfinite pixels or ANTs/NIfTI geometry disagreements are rejected for review.

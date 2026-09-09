@@ -59,15 +59,24 @@ def image_register(
     output: Path,
     transform: Transform = Transform.rigid,
     seed: int = 1729,
+    settings: Path | None = None,
 ) -> dict[str, Any]:
     """Register moving into fixed image space with ANTsPy; preserve original images."""
     from ccep.imaging.ants_backend import register
 
     mode = cast(Literal["Rigid", "Affine", "SyN"], transform.value)
     # Enum validation belongs to the CLI; library validates its own string input.
-    result = register(fixed, moving, output, transform=mode, seed=seed)
+    from ccep.imaging.settings import RegistrationSettings
+
+    recipe = (
+        RegistrationSettings.model_validate_json(settings.read_text())
+        if settings
+        else None
+    )
+    result = register(fixed, moving, output, transform=mode, seed=seed, settings=recipe)
     return dict(
         warped=str(result.warped.resolve()),
+        transform_bundle=str((output / "transforms.json").resolve()),
         forward_transforms=list(map(str, result.forward_transforms)),
         inverse_transforms=list(map(str, result.inverse_transforms)),
         artifacts=[
@@ -137,8 +146,70 @@ def image_contacts(session: Path, output: Path) -> dict[str, Any]:
     )
 
 
+class MappingDirection(StrEnum):
+    moving_to_fixed = "moving-to-fixed"
+    fixed_to_moving = "fixed-to-moving"
+
+
+def image_apply(
+    bundle: Path,
+    image: Path,
+    reference: Path,
+    output: Path,
+    direction: MappingDirection = MappingDirection.moving_to_fixed,
+    labels: bool = False,
+) -> dict[str, Any]:
+    """Apply verified transforms to an associated image; use --labels for atlas IDs."""
+    from ccep.imaging.transforms import Direction, apply_image
+
+    apply_image(
+        bundle,
+        image,
+        reference,
+        output,
+        direction=cast(Direction, direction.value),
+        labels=labels,
+    )
+    return dict(
+        artifacts=[dict(path=str(output.resolve()), sha256=sha256(output))],
+        transform_bundle_sha256=sha256(bundle),
+        source_sha256=sha256(image),
+        reference_sha256=sha256(reference),
+        direction=direction.value,
+        interpolation="genericLabel" if labels else "linear",
+    )
+
+
+def image_transform_points(
+    bundle: Path,
+    points: Path,
+    output: Path,
+    direction: MappingDirection = MappingDirection.moving_to_fixed,
+) -> dict[str, Any]:
+    """Transform a JSON array of [x,y,z] RAS-mm contacts with explicit direction."""
+    import json
+
+    from ccep.imaging.transforms import Direction, apply_points
+
+    values = np.asarray(json.loads(points.read_text()), dtype=float)
+    mapped = apply_points(bundle, values, direction=cast(Direction, direction.value))
+    payload = dict(
+        coordinates_ras_mm=mapped.tolist(),
+        direction=direction.value,
+        transform_bundle_sha256=sha256(bundle),
+        source_sha256=sha256(points),
+    )
+    with atomic_binary(output) as stream:
+        stream.write((json.dumps(payload, indent=2) + "\n").encode())
+    return dict(
+        artifacts=[dict(path=str(output.resolve()), sha256=sha256(output))], **payload
+    )
+
+
 def register_commands(app: typer.Typer) -> None:
     app.command("image-inspect")(image_inspect)
     app.command("image-register")(image_register)
     app.command("image-segment")(image_segment)
     app.command("image-contacts")(image_contacts)
+    app.command("image-apply")(image_apply)
+    app.command("image-transform-points")(image_transform_points)

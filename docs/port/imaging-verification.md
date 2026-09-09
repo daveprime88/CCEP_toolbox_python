@@ -57,3 +57,21 @@ stdout and exact reproducibility against the API on the synthetic fixture.
 Registration/segmentation GUI controls, manual reorientation and all legacy
 imaging-session workflows remain unfinished. Synthetic checks do not replace
 SPM outcome comparisons.
+
+## Trade study and transform contracts (9 September 2026)
+
+See the [primary-source trade study](../research/spm12_python_trade_study.md),
+[exact source mapping](../research/spm_operation_mapping.md), and
+[reproducible rigid comparison](../research/registration_benchmarks.md).
+ANTsPy remains the primary candidate; SimpleITK is an optional benchmark group.
+The study distinguishes ITK from SimpleITK, SPM's joint segmentation from N4 plus
+Atropos, and modulated densities from ordinary probabilities.
+
+Registration now persists a portable transform bundle with explicit ordered
+inversion flags, input grids and artifact hashes. Image and contact commands use
+anatomical direction names and adapt ANTs' opposite point convention. A known
+nonzero LPS affine verifies image/point agreement, inverse round trips, portable
+bundles and corruption rejection. Oblique/reflected images are read consistently;
+conflicting NIfTI transforms and shear are rejected. Configurable registration
+recipes persist their effective parameters. These engineering tests do not
+measure SPM equivalence or select a clinically accepted recipe.
