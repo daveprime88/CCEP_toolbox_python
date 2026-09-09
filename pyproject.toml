@@ -32,6 +32,8 @@ imaging = ["antspyx>=0.6.3", "nibabel>=5.3"]
 dev = ["pytest>=8.3", "ruff>=0.11", "black>=25.1", "pyright>=1.1.400", "pre-commit>=4.2", "build>=1.2"]
 
 gui-tests = ["pytest-qt>=4.4"]
+# Optional comparison engine; production imaging continues to use ANTsPy.
+imaging-benchmarks = ["SimpleITK>=2.5,<3"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/ccep"]
