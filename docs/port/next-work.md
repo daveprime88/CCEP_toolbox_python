@@ -26,8 +26,14 @@ review and CLI export. It is not the agreed complete first release. Keep the
 4. **Imaging completion (WP3b/WP2/WP5).** Port manual reorientation, full image
    selection/registration/segmentation state, coordinate session compatibility,
    atlas/tissue shape sampling and 3D displays. Review normalization/template
-   choices and the user's SPM12/ANTs comparison resource. Add matched image outcome
-   reports and unit adapters. Resolve ANTs/Python 3.14 installation separately.
+   choices and the user's SPM12/ANTs comparison resource. The trade study and
+   staged six-tissue normalization candidate are now implemented; compare them
+   with representative SPM cases before choosing scientific defaults. In particular,
+   verify N4/segmentation mask choices, iterative estimation, the six-class tissue
+   model, cropped-field behavior, and discrete SPM modulation versus pull-Jacobian
+   densities. Add matched image outcome reports and unit adapters. Resolve
+   ANTs/Python 3.14 installation separately. See `docs/research/` and
+   `imaging-verification.md` for completed engineering evidence.
 5. **Safety and remaining utilities (WP2/WP3a).** Complete study-detail selection,
    historical plot/table semantics and all remaining reachable utility workflows.
 6. **Release evidence (WP4/WP6).** Complete corpus coverage, author GUI walkthroughs,

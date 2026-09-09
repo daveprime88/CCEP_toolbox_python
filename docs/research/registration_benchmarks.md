@@ -95,3 +95,29 @@ The second recipe completes all four cases. It is slightly less accurate by TRE 
 5. Add a separate nonlinear experiment and external SPM normalization comparison before claiming SyN equivalence. This study estimates rigid transforms only. It does not test SPM's unified segmentation, ANTs Atropos/N4, deformable displacement conventions or the legacy sphere-based electrode normalization path.
 
 No library backend or scientific acceptance threshold was changed by this benchmark script itself.
+
+## Linux CI replication
+
+The expanded [GitHub Actions run at `34e78d6`](https://github.com/daveprime88/CCEP_toolbox_python/actions/runs/34361288259)
+completed all 16 registrations using the second SimpleITK recipe and uploaded
+`synthetic-registration-study`. Its `results.json` SHA256 is
+`2cae8f75b234fbcb840f12e2e5f23f860ecbab421b35e1b4c18ece00afa1595d`.
+A local copy is under ignored `artifacts/trade-study/github-linux-34e78d6`.
+Versions: Linux x86_64, Python 3.11.16, NumPy 2.3.5, ANTsPy 0.6.3,
+SimpleITK 2.5.6. The job requires every registration to execute successfully;
+it does not impose a retrospectively selected scientific accuracy threshold.
+
+| Case | ANTsPy mean TRE (mm) | SimpleITK mean TRE (mm) |
+|---|---:|---:|
+| Isotropic, same contrast | 0.0382 | 0.0284 |
+| Isotropic, reversed contrast | 0.0353 | 0.0200 |
+| Anisotropic, oblique | 0.0264 | 0.0365 |
+| Oblique, noisy, larger motion | 0.0316 | 0.0435 |
+
+The SimpleITK oblique result differs from macOS's 0.0577 mm despite the same
+recipe. The regenerated image affines and label arrays are identical across
+platforms, while the intensity arrays have floating-point differences. This is
+not a controlled identical-byte-input platform study; do not attribute the
+optimizer difference to a particular cause or claim cross-platform bitwise
+reproducibility. Future strict platform comparisons should redistribute one
+immutable fixture bundle rather than regenerate phantoms independently.

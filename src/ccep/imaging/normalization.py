@@ -16,6 +16,7 @@ from ccep.imaging.ants_backend import register, segment
 from ccep.imaging.deformation import full_pull_field, pull_jacobian
 from ccep.imaging.geometry import spm_pull_resample
 from ccep.imaging.images import load_spatial_mm
+from ccep.imaging.provenance import snapshot_inputs, verify_unchanged
 from ccep.imaging.segmentation import (
     N4_SETTINGS,
     SPM_TISSUES,
@@ -49,6 +50,7 @@ def normalize(
         raise FileExistsError(output)
     if len(priors) != 6:
         raise ValueError("Supply six template priors in SPM tissue order")
+    input_hashes = snapshot_inputs([image, mask, template, *priors])
     _, native_mask = masked_image(image, mask)
     template_grid = Grid.from_image(template)
     read_ants_mm(template)
@@ -152,6 +154,7 @@ def normalize(
     artifacts = {
         str(p.relative_to(output)): sha256(p) for p in output.rglob("*") if p.is_file()
     }
+    verify_unchanged(input_hashes)
     manifest = output / "normalization.json"
     manifest.write_text(
         json.dumps(
@@ -160,10 +163,10 @@ def normalize(
                 recipe="n4-syn-six-prior-atropos-v1",
                 classes=SPM_TISSUES,
                 inputs=dict(
-                    image=sha256(image),
-                    mask=sha256(mask),
-                    template=sha256(template),
-                    priors=[sha256(p) for p in priors],
+                    image=input_hashes[image],
+                    mask=input_hashes[mask],
+                    template=input_hashes[template],
+                    priors=[input_hashes[p] for p in priors],
                 ),
                 n4=N4_SETTINGS,
                 registration="registration/registration.json",

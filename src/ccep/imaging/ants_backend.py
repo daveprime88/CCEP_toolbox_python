@@ -17,6 +17,7 @@ from typing import Any, Literal, cast
 import numpy as np
 
 from ccep.imaging.images import load_spatial_mm
+from ccep.imaging.provenance import snapshot_inputs, verify_unchanged
 from ccep.imaging.settings import RegistrationSettings
 from ccep.imaging.transforms import capture_bundle, read_ants_mm
 from ccep.reference import sha256
@@ -57,6 +58,7 @@ def register(
         raise ValueError("Unsupported registration transform")
     if output.exists():
         raise FileExistsError(output)
+    input_hashes = snapshot_inputs([fixed, moving])
     load_spatial_mm(fixed)
     load_spatial_mm(moving)
     ants = _ants()
@@ -106,9 +108,11 @@ def register(
     ants.image_write(result["warpedmovout"], str(warped))
     forward = tuple(Path(p).resolve() for p in result["fwdtransforms"])
     inverse = tuple(Path(p).resolve() for p in result["invtransforms"])
+    verify_unchanged(input_hashes)
     bundle = capture_bundle(fixed, moving, forward, inverse, output)
     bundle_path = output / "transforms.json"
     bundle_path.write_text(bundle.model_dump_json(indent=2) + "\n")
+    verify_unchanged(input_hashes)
     manifest = output / "registration.json"
     manifest.write_text(
         json.dumps(
@@ -116,8 +120,8 @@ def register(
                 schema_version=2,
                 backend="ANTsPy",
                 version=ants.__version__,
-                fixed_sha256=sha256(fixed),
-                moving_sha256=sha256(moving),
+                fixed_sha256=input_hashes[fixed],
+                moving_sha256=input_hashes[moving],
                 fixed=str(fixed.resolve()),
                 moving=str(moving.resolve()),
                 image_mapping="moving-to-fixed via ANTs apply_transforms",
@@ -167,6 +171,7 @@ def segment(
     from ccep.imaging.segmentation import N4_SETTINGS, masked_image, validate_priors
 
     ants = _ants()
+    input_hashes = snapshot_inputs([image, mask, *priors])
     original, mask_image = masked_image(image, mask)
     prior_images = validate_priors(image, mask_image, priors)
     output.mkdir(parents=True)
@@ -202,6 +207,7 @@ def segment(
         path = output / f"probability_{name}.nii.gz"
         ants.image_write(probability, str(path))
         probabilities.append(path)
+    verify_unchanged(input_hashes)
     (output / "segmentation.json").write_text(
         json.dumps(
             dict(
@@ -209,9 +215,9 @@ def segment(
                 backend="ANTsPy",
                 version=ants.__version__,
                 classes=class_names,
-                image_sha256=sha256(image),
-                mask_sha256=sha256(mask),
-                prior_sha256=[sha256(p) for p in priors],
+                image_sha256=input_hashes[image],
+                mask_sha256=input_hashes[mask],
+                prior_sha256=[input_hashes[p] for p in priors],
                 bias_correction=(
                     N4_SETTINGS if bias_correct else "already corrected; N4 skipped"
                 ),

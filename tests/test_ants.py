@@ -92,3 +92,29 @@ def test_six_prior_segmentation_writes_probability_maps(tmp_path):
     stacked = np.stack([nib.load(p).get_fdata() for p in probabilities])
     np.testing.assert_allclose(stacked.sum(axis=0), 1, atol=1e-4)
     assert set(np.unique(nib.load(segmentation).get_fdata())) <= set(range(1, 7))
+
+
+def test_registration_refuses_manifest_if_source_changes_during_native_call(
+    tmp_path, monkeypatch
+):
+    grid = np.indices((20, 20, 20))
+    values = np.exp(
+        -sum((grid[i] - [8, 10, 12][i]) ** 2 for i in range(3)) / 15
+    ).astype(np.float32)
+    fixed = tmp_path / "fixed.nii.gz"
+    moving = tmp_path / "moving.nii.gz"
+    save_mm(nib.Nifti1Image(values, np.eye(4)), fixed)
+    save_mm(nib.Nifti1Image(values, np.eye(4)), moving)
+    original_registration = ants.registration
+
+    def registration_then_edit(*args, **kwargs):
+        result = original_registration(*args, **kwargs)
+        save_mm(nib.Nifti1Image(values * 2, np.eye(4)), moving)
+        return result
+
+    monkeypatch.setattr(ants, "registration", registration_then_edit)
+    output = tmp_path / "changed"
+    with pytest.raises(ValueError, match="Input changed during processing"):
+        register(fixed, moving, output)
+    assert not (output / "registration.json").exists()
+    assert not (output / "transforms.json").exists()

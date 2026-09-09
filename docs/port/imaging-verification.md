@@ -104,3 +104,9 @@ SPM `mwc` output uses push/splat with voxel-volume scaling; this implementation'
 linear pull × full Jacobian is a separate numerical algorithm. Nonpositive signed
 Jacobians are rejected rather than hidden by logarithms/clipping. Real corpus
 comparisons must establish acceptable contact, tissue and mass differences.
+
+Long-running registration, segmentation and normalization now snapshot input hashes
+before reading and verify them before publishing completion manifests. A regression
+test replaces an input during an actual ANTs call and requires rejection. This
+protects provenance from ordinary concurrent source edits; use stable inputs for
+processing and retain partial artifacts if the input-change guard fires.
