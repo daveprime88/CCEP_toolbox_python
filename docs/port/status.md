@@ -37,6 +37,8 @@ walkthrough has occurred on this machine.
   The expanded 14-job matrix passed at `34e78d6`, including Qt/ANTs on
   macOS/Windows 3.11 and Linux 3.13 and the ANTs/SimpleITK benchmark.
   [Expanded run](https://github.com/daveprime88/CCEP_toolbox_python/actions/runs/34361288259).
+  The final input-change regression fix at `de4f98a` also passed all 14 jobs.
+  [Regression-fix run](https://github.com/daveprime88/CCEP_toolbox_python/actions/runs/34361969605).
   Core resolves independently; imaging jobs use the full lock.
 - The manual media were checked visually; Python interaction tests inspect actual
   state and plotted arrays. Screenshots alone do not certify GUI parity.
