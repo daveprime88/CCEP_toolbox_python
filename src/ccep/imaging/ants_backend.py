@@ -71,11 +71,26 @@ def register(
         numpy_state, random_state = np.random.get_state(), random.getstate()
         try:
             ants.config.set_ants_deterministic(True, seed_value=seed)
+            arguments = settings.arguments()
+            backend_transform = transform
+            if transform == "SyN" and settings.recipe == "explicit-v1":
+                # ANTs 0.6.3's built-in SyN ignores the affine schedule kwargs.
+                # Separate stages make caller-selected schedules effective.
+                affine_result = ants.registration(
+                    fixed=fixed_image,
+                    moving=moving_image,
+                    type_of_transform="Affine",
+                    **arguments,
+                    outprefix=str(output / "prealignment_"),
+                    verbose=False,
+                )
+                arguments["initial_transform"] = affine_result["fwdtransforms"]
+                backend_transform = "SyNOnly"
             result = ants.registration(
                 fixed=fixed_image,
                 moving=moving_image,
-                type_of_transform=transform,
-                **settings.arguments(),
+                type_of_transform=backend_transform,
+                **arguments,
                 outprefix=str(output / "registration_"),
                 verbose=False,
             )
@@ -108,7 +123,8 @@ def register(
                 image_mapping="moving-to-fixed via ANTs apply_transforms",
                 world_coordinates="ANTs LPS mm; public geometry uses RAS mm",
                 transform=transform,
-                settings=settings.model_dump(mode="json"),
+                requested_settings=settings.model_dump(mode="json"),
+                effective_settings=settings.effective(transform),
                 initialization=settings.initialization,
                 seed=seed,
                 threads=1,
@@ -127,7 +143,13 @@ def register(
 
 
 def segment(
-    image: Path, mask: Path, priors: list[Path], class_names: list[str], output: Path
+    image: Path,
+    mask: Path,
+    priors: list[Path],
+    class_names: list[str],
+    output: Path,
+    *,
+    bias_correct: bool = True,
 ) -> tuple[Path, list[Path]]:
     """N4 + prior-informed six-class Atropos candidate for the SPM workstream.
 
@@ -142,28 +164,36 @@ def segment(
         raise ValueError("Class names may contain letters, numbers and underscores")
     if output.exists():
         raise FileExistsError(output)
-    for path in [image, mask, *priors]:
-        load_spatial_mm(path)
+    from ccep.imaging.segmentation import N4_SETTINGS, masked_image, validate_priors
+
     ants = _ants()
-    original = ants.image_read(str(image))
-    mask_image = ants.image_read(str(mask))
-    prior_images = [ants.image_read(str(path)) for path in priors]
-    for other in [mask_image, *prior_images]:
-        if (
-            not ants.image_physical_space_consistency(original, other)
-            or original.shape != other.shape
-        ):
-            raise ValueError("Segmentation masks/priors must match the image grid")
+    original, mask_image = masked_image(image, mask)
+    prior_images = validate_priors(image, mask_image, priors)
     output.mkdir(parents=True)
-    corrected = ants.n4_bias_field_correction(original, mask=mask_image)
-    result = ants.atropos(
-        a=corrected,
-        x=mask_image,
-        i=prior_images,
-        m="[0.1,1x1x1]",
-        c="[5,0]",
-        priorweight=0.25,
-    )
+    with _REGISTRATION_LOCK:
+        corrected = (
+            ants.n4_bias_field_correction(original, mask=mask_image, **N4_SETTINGS)
+            if bias_correct
+            else original
+        )
+        result = ants.atropos(
+            a=corrected,
+            x=mask_image,
+            i=prior_images,
+            m="[0.1,1x1x1]",
+            c="[5,0]",
+            priorweight=0.25,
+            r=0,  # ANTs fixed internal seed; no wall-clock random initialization.
+        )
+    posteriors = np.stack([p.numpy() for p in result["probabilityimages"]])
+    selected = posteriors[:, mask_image.numpy() == 1]
+    if (
+        not np.isfinite(posteriors).all()
+        or (posteriors < 0).any()
+        or (posteriors > 1).any()
+        or not np.allclose(selected.sum(axis=0), 1, atol=1e-4)
+    ):
+        raise ValueError("Atropos returned invalid posterior probabilities")
     segmentation = output / "segmentation.nii.gz"
     ants.image_write(corrected, str(output / "bias_corrected.nii.gz"))
     ants.image_write(result["segmentation"], str(segmentation))
@@ -182,6 +212,18 @@ def segment(
                 image_sha256=sha256(image),
                 mask_sha256=sha256(mask),
                 prior_sha256=[sha256(p) for p in priors],
+                bias_correction=(
+                    N4_SETTINGS if bias_correct else "already corrected; N4 skipped"
+                ),
+                atropos_use_random_seed=False,
+                output_sha256={
+                    p.name: sha256(p)
+                    for p in [
+                        segmentation,
+                        *probabilities,
+                        output / "bias_corrected.nii.gz",
+                    ]
+                },
                 priorweight=0.25,
                 convergence="[5,0]",
                 mrf="[0.1,1x1x1]",

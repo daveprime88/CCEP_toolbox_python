@@ -60,3 +60,21 @@ class RegistrationSettings(BaseModel):
             "Identity" if self.initialization == "identity" else None
         )
         return result
+
+    def effective(self, transform: str) -> dict[str, object]:
+        result = self.model_dump(mode="json")
+        if transform == "SyN" and self.recipe == "ants-defaults-v1":
+            result.update(
+                aff_iterations=[2100, 1200, 1200, 0],
+                aff_shrink_factors=[4, 2, 2, 1],
+                aff_smoothing_sigmas=[3, 2, 1, 0],
+                smoothing_in_mm=False,
+                stages="ANTs built-in SyN affine + nonlinear; affine schedules hardcoded by backend",
+            )
+        elif transform == "SyN":
+            result["stages"] = (
+                "Explicit Affine then SyNOnly initialized with fitted affine"
+            )
+        else:
+            result["stages"] = transform
+        return result

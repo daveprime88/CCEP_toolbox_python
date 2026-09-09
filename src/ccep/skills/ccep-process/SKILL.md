@@ -1,6 +1,6 @@
 ---
 name: ccep-process
-description: Inspect SEEG EDF recordings and annotations, validate an explicit CCEP analysis configuration, process pulse trains, and export results through the CCEP Toolbox CLI.
+description: Process SEEG recordings or run CCEP image registration, normalization and contact transforms through the CCEP Toolbox CLI.
 ---
 
 # Process CCEP recordings
@@ -10,7 +10,10 @@ environment. Read `ccep --help` to discover the installed command interface.
 Commands accept `--json` **before** the command and return one schema-versioned
 JSON envelope. Check `ok`, `exit_code`, and `diagnostics` on every invocation.
 
-## Workflow
+For image registration, normalization, atlas resampling or contact transforms,
+read [references/imaging.md](references/imaging.md) and follow that branch.
+
+## Recording workflow
 
 1. Inspect the requested EDF and, when present, its edited annotation file:
    `ccep --json inspect RECORDING --annotations ANNOTATIONS`.

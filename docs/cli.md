@@ -115,3 +115,49 @@ Associated images must match the source grid and the reference must match the
 target grid. Intensity/probability interpolation is linear; `--labels` uses
 `genericLabel`. Headers must declare mm, and conflicting qform/sform, shear,
 nonfinite pixels or ANTs/NIfTI geometry disagreements are rejected for review.
+
+### Six-tissue normalization candidate
+
+`ccep --json image-normalize normalization.json NEW_OUTPUT_DIRECTORY` accepts:
+
+```json
+{
+  "image": "native_t1.nii.gz",
+  "mask": "native_estimation_mask.nii.gz",
+  "template": "explicit_template_t1.nii.gz",
+  "priors": ["gm.nii.gz", "wm.nii.gz", "csf.nii.gz", "bone.nii.gz", "soft.nii.gz", "background.nii.gz"],
+  "seed": 1729,
+  "registration_settings": {"recipe": "explicit-v1"}
+}
+```
+
+Paths are relative to the configuration. Priors must match the template grid and
+use **GM, WM, CSF, bone, soft tissue, background** order. DeepAtropos's tissue
+classes are different. Templates and atlases are not downloaded automatically.
+
+The pipeline performs N4, affine/SyN registration, inverse transfer of template
+priors, explicit six-prior renormalization, and native Atropos segmentation. It
+writes native labels/probabilities, normalized probabilities, and three separately
+named modulated density maps (GM/WM/CSF). Densities include the complete pull
+Jacobian, including affine scaling; values can exceed one. This differs from
+SPM's discrete `mwc` writer and remains an outcome-equivalence candidate.
+
+The estimation mask must be binary, nonempty and contain positive MRI intensities.
+All six priors must have support within it. A brain-only mask is not a substitute
+for six whole-head tissues. N4 and Atropos currently share this explicit mask;
+separate bias-estimation/segmentation masks and iterative bias/segmentation
+refinement remain work for representative reference cases. CT HU data are not
+silently shifted or sent through N4. Transferred priors must cover every estimation
+voxel; a coverage failure requires reviewing registration/masks/template choice.
+
+`normalization.json` is written only after completion. Preserve partial output
+folders on failure for diagnosis and use a fresh folder for retry. The manifest
+contains artifact hashes, input identities, class/output roles, Jacobian extrema
+and native/normalized tissue masses. Cropping/interpolation can change mass;
+these diagnostics have no automatically inferred scientific tolerance.
+
+`explicit-v1` uses separate Affine and SyNOnly calls so affine schedules actually
+take effect. ANTsPy 0.6.3's built-in SyN ignores those schedule arguments; the
+preserved `ants-defaults-v1` recipe records the backend's hardcoded effective
+schedule separately from requested settings. Neither recipe is accepted as SPM
+scientific equivalence.

@@ -105,6 +105,38 @@ def image_segment(config: Path, output: Path) -> dict[str, Any]:
     )
 
 
+class NormalizationConfig(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    image: Path
+    mask: Path
+    template: Path
+    priors: list[Path]
+    seed: int = 1729
+    registration_settings: dict[str, Any] = {}
+
+
+def image_normalize(config: Path, output: Path) -> dict[str, Any]:
+    """N4/SyN/six-tissue pipeline from explicit template priors; SPM acceptance pending."""
+    from ccep.imaging.normalization import normalize
+    from ccep.imaging.settings import RegistrationSettings
+
+    settings = NormalizationConfig.model_validate_json(config.read_text())
+    base = config.parent
+    manifest = normalize(
+        base / settings.image,
+        base / settings.mask,
+        base / settings.template,
+        [base / path for path in settings.priors],
+        output,
+        seed=settings.seed,
+        settings=RegistrationSettings.model_validate(settings.registration_settings),
+    )
+    return dict(
+        artifacts=[dict(path=str(manifest.resolve()), sha256=sha256(manifest))],
+        scientific_status="Unverified ANTs outcome candidate; inspect normalization QC and compare with SPM",
+    )
+
+
 def image_contacts(session: Path, output: Path) -> dict[str, Any]:
     """Export acquired contacts in native RAS mm from a checksummed imaging session."""
     data = load_session(session)
@@ -213,3 +245,4 @@ def register_commands(app: typer.Typer) -> None:
     app.command("image-contacts")(image_contacts)
     app.command("image-apply")(image_apply)
     app.command("image-transform-points")(image_transform_points)
+    app.command("image-normalize")(image_normalize)

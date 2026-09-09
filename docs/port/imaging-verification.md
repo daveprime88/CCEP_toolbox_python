@@ -75,3 +75,32 @@ bundles and corruption rejection. Oblique/reflected images are read consistently
 conflicting NIfTI transforms and shear are rejected. Configurable registration
 recipes persist their effective parameters. These engineering tests do not
 measure SPM equivalence or select a clinically accepted recipe.
+
+## Normalization implementation (10 September 2026)
+
+The `image-normalize` candidate now performs explicit N4 → template registration
+→ inverse six-prior transfer/renormalization → native Atropos → normalized
+probabilities and GM/WM/CSF modulated densities. Its manifest distinguishes every
+output role and reports hashes, full-pull Jacobian extrema and tissue mass changes.
+Masks, positivity, prior support/range/sums and posterior simplex checks precede
+acceptance of artifacts. The shared N4/Atropos estimation mask and staged, single
+pass design remain limitations relative to SPM's joint estimation.
+
+Analytic tests verify the signed full-pull Jacobian in oblique, anisotropic and
+sheared coordinate systems, affine volume scaling, folded-map rejection and
+change-of-variables mass preservation. Actual ANTs composition is tested against
+a known scaling/translation; explicit affine+SyN retains a nonidentity initial
+transform. A six-tissue synthetic pipeline executes through both API and CLI,
+checks probability sums and artifact hashes, and compares normalized contacts
+through a forward/inverse nonlinear round trip. Native input data are retained.
+
+A test exposed ANTsPy 0.6.3's hardcoded affine schedule inside `SyN`. The named
+`explicit-v1` recipe now runs Affine followed by SyNOnly to honor configured
+schedules. Built-in candidate behavior is retained as `ants-defaults-v1`, with
+requested/effective settings distinguished. This is a Python adapter correction,
+not an accepted correction to the original MATLAB science.
+
+SPM `mwc` output uses push/splat with voxel-volume scaling; this implementation's
+linear pull × full Jacobian is a separate numerical algorithm. Nonpositive signed
+Jacobians are rejected rather than hidden by logarithms/clipping. Real corpus
+comparisons must establish acceptable contact, tissue and mass differences.
