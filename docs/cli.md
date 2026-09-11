@@ -76,7 +76,7 @@ Imaging commands use the same JSON envelope:
 
 ```sh
 ccep --json image-inspect native.nii.gz
-ccep --json image-register MRI.nii.gz CT.nii.gz new-registration --transform Rigid --seed 1729
+ccep --json image-register MRI.nii.gz CT.nii.gz new-registration --task ct-to-mri --seed 1729
 ccep --json image-segment segmentation-config.json new-segmentation
 ccep --json image-contacts imaging-session.json contacts.csv
 ```
@@ -247,3 +247,10 @@ at startup. This is automatic for library and CLI use, including notebooks that
 have already used ANTs. The worker preserves the caller's random state and thread
 environment. The same build/fixture has API/CLI equality checks; cross-platform
 or cross-version bitwise equality is not promised.
+
+Use `image-register MRI CT NEW --task ct-to-mri` to select the named rigid Mattes
+recipe, or `--task t1-to-template` for explicit Affine + CC SyN. A named task cannot
+be combined with `--settings` or a conflicting transform. Without a task, the
+existing generic rigid default and custom settings interface remain available.
+`image-template-register` selects the T1 task and records the supplied McGill
+bundle identity automatically.

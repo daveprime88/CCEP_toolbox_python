@@ -13,6 +13,7 @@ import typer
 from pydantic import BaseModel, ConfigDict
 
 from ccep.imaging.session import load_session
+from ccep.imaging.settings import RegistrationSettings, RegistrationTask, task_settings
 from ccep.io.atomic import atomic_binary
 from ccep.reference import sha256
 
@@ -57,23 +58,28 @@ def image_register(
     fixed: Path,
     moving: Path,
     output: Path,
-    transform: Transform = Transform.rigid,
+    transform: Transform | None = None,
     seed: int = 1729,
     settings: Path | None = None,
+    task: RegistrationTask | None = None,
     fixed_mask: Path | None = None,
     moving_mask: Path | None = None,
 ) -> dict[str, Any]:
     """Register moving into fixed image space with ANTsPy; preserve original images."""
     from ccep.imaging.ants_backend import register
 
-    mode = cast(Literal["Rigid", "Affine", "SyN"], transform.value)
-    # Enum validation belongs to the CLI; library validates its own string input.
-    from ccep.imaging.settings import RegistrationSettings
-
+    if task is not None and settings is not None:
+        raise ValueError("Choose a named task or a custom settings file, not both")
+    task_transform = (
+        Transform.syn if task == RegistrationTask.t1_to_template else Transform.rigid
+    )
+    if task is not None and transform is not None and transform != task_transform:
+        raise ValueError(f"Task {task.value} requires {task_transform.value}")
+    mode = cast(Literal["Rigid", "Affine", "SyN"], (transform or task_transform).value)
     recipe = (
         RegistrationSettings.model_validate_json(settings.read_text())
         if settings
-        else None
+        else task_settings(task) if task is not None else None
     )
     result = register(
         fixed,
@@ -86,6 +92,7 @@ def image_register(
         moving_mask=moving_mask,
     )
     return dict(
+        task=task.value if task is not None else "generic",
         warped=str(result.warped.resolve()),
         transform_bundle=str((output / "transforms.json").resolve()),
         forward_transforms=list(map(str, result.forward_transforms)),
@@ -132,7 +139,6 @@ class NormalizationConfig(BaseModel):
 def image_normalize(config: Path, output: Path) -> dict[str, Any]:
     """N4/SyN/six-tissue pipeline from explicit template priors; SPM acceptance pending."""
     from ccep.imaging.normalization import normalize
-    from ccep.imaging.settings import RegistrationSettings
 
     settings = NormalizationConfig.model_validate_json(config.read_text())
     base = config.parent
@@ -291,7 +297,6 @@ def image_template_register(
 ) -> dict[str, Any]:
     """Register native T1 to an exact verified template with the ANTs CC candidate."""
     from ccep.imaging.ants_backend import register
-    from ccep.imaging.settings import RegistrationTask, task_settings
     from ccep.imaging.templates import load_template
 
     bundle = load_template(template_bundle)

@@ -204,3 +204,34 @@ print(json.dumps({"warped": str(result.warped)}))
         )
         results.append(nib.load(json.loads(process.stdout)["warped"]).get_fdata())
     np.testing.assert_array_equal(*results)
+
+
+def test_cli_named_ct_recipe_is_rigid_and_persisted(tmp_path, capsys):
+    import json
+
+    from ccep.cli import run
+    from ccep.imaging.settings import RegistrationTask, task_settings
+
+    grid = np.indices((24, 24, 24), dtype=float)
+    data = np.exp(-sum((grid[i] - [9, 11, 13][i]) ** 2 for i in range(3)) / 15)
+    source = tmp_path / "source.nii.gz"
+    output = tmp_path / "ct-registration"
+    save_mm(nib.Nifti1Image(data.astype(np.float32), np.eye(4)), source)
+    status = run(
+        [
+            "--json",
+            "image-register",
+            str(source),
+            str(source),
+            str(output),
+            "--task",
+            "ct-to-mri",
+        ]
+    )
+    assert status == 0
+    assert json.loads(capsys.readouterr().out)["data"]["task"] == "ct-to-mri"
+    manifest = json.loads((output / "registration.json").read_text())
+    assert manifest["transform"] == "Rigid"
+    assert manifest["requested_settings"] == task_settings(
+        RegistrationTask.ct_to_mri
+    ).model_dump(mode="json")

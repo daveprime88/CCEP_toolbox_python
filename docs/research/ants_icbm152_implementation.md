@@ -60,6 +60,7 @@ Reproduce after installing the archive:
 ccep --json image-template-install ~/Downloads/icbm152_ext55_model_sym_2020_nifti.zip artifacts/templates/icbm152-ext55-2020
 python tools/benchmark_ants_template.py --template artifacts/templates/icbm152-ext55-2020/template.json --output artifacts/template-study/NEW_RUN
 python tools/render_template_study.py artifacts/template-study/NEW_RUN artifacts/template-study/NEW_RUN/overlays.png
+python tools/check_template_atlas.py artifacts/template-study/NEW_RUN artifacts/template-study/NEW_ATLAS_CHECK
 ```
 
 ANTsPy 0.6.3, macOS arm64, Python 3.11.15, one ITK thread, seed 1729. Images are
@@ -86,6 +87,14 @@ can introduce small local shifts even when ground truth is rigid. These are
 engineering checks, not patient validation or matched SPM comparisons.
 
 ![Physical-grid overlays before and after registration](../assets/mcgill/registration-overlays.png)
+
+The CerebrA inverse label-transport check used the fitted T1 bundle and
+`genericLabel` interpolation onto the moving grid. It recovered the known-motion
+label array exactly across 146,316 foreground-union voxels; no new IDs appeared.
+That result is expected for sufficiently small residual motion in this constructed
+case. It does not test anatomical label correctness or intersubject registration.
+The script above retains the output, hashes, mismatch count and per-region macro
+Dice summary in a separate new folder.
 
 ## Remaining evidence
 

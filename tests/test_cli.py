@@ -104,3 +104,17 @@ def test_comparison_uses_per_array_units_and_exact_sample_indexes(
     limits["t0_c0_erp"]["unit"] = "dimensionless"
     tolerance.write_text(json.dumps({"arrays": limits}))
     assert invoke(capsys, "compare", actual, expected, tolerance)[0] == 2
+
+
+@pytest.mark.parametrize(
+    "extra, message",
+    [
+        (["--task", "ct-to-mri", "--transform", "SyN"], "requires Rigid"),
+        (["--task", "t1-to-template", "--transform", "Rigid"], "requires SyN"),
+        (["--task", "ct-to-mri", "--settings", "recipe.json"], "not both"),
+    ],
+)
+def test_registration_task_conflicts_fail_before_processing(capsys, extra, message):
+    status, body = invoke(capsys, "image-register", "fixed", "moving", "output", *extra)
+    assert status == 2
+    assert message in json.dumps(body)

@@ -23,7 +23,7 @@ adapters. SimpleITK is now restricted to the optional release comparison workflo
 
 ## Evidence and limits
 
-- macOS arm64 Python 3.11.15: **84 tests pass**, including Qt and ANTsPy 0.6.3.
+- macOS arm64 Python 3.11.15: **88 tests pass**, including Qt and ANTsPy 0.6.3.
   Ruff, Black and Pyright pass in this full environment.
 - Earlier pre-recreation macOS arm64 Python 3.14.6 run: **55 tests passed**, one ANTs test module was skipped.
   Core, Qt and NIfTI review install and execute with independent resolution.

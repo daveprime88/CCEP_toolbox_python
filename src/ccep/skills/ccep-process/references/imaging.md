@@ -3,7 +3,7 @@
 Inspect installed `image-* --help` interfaces. Use `--json` before the command and
 require a successful envelope plus the named artifacts. Keep input images intact.
 
-For CT→MRI alignment, use `image-register MRI CT NEW_DIRECTORY --transform Rigid`.
+For CT→MRI alignment, use `image-register MRI CT NEW_DIRECTORY --task ct-to-mri`.
 For a supplied registration, use its `transforms.json` bundle. Copy the complete
 folder when relocating it: ordered transform artifacts are relative and checksummed.
 Use `image-apply BUNDLE ASSOCIATED_IMAGE TARGET_REFERENCE NEW_IMAGE` to reuse one
