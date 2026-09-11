@@ -11,11 +11,11 @@ if TYPE_CHECKING:
     from nibabel.spatialimages import SpatialImage
 
 
-def load_spatial_mm(path: Path) -> SpatialImage:
+def load_spatial_mm(path: Path, *, mmap: bool = True) -> SpatialImage:
     import nibabel as nib
     from nibabel.spatialimages import SpatialImage
 
-    image = nib.load(path)
+    image = nib.load(path, mmap=mmap)
     if not isinstance(image, SpatialImage) or image.affine is None:
         raise ValueError("Expected an image with voxel-to-world geometry")
     if (

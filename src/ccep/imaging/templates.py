@@ -128,7 +128,9 @@ def load_template(path: Path) -> TemplateBundle:
 
 
 def _content(path: Path) -> tuple[ImageContent, np.ndarray]:
-    image = load_spatial_mm(path)
+    # Staged files must be movable/removable on Windows, including when an
+    # exception traceback retains arrays during TemporaryDirectory cleanup.
+    image = load_spatial_mm(path, mmap=False)
     # Count decoded NIfTI intensities, including scl_slope/scl_inter. Raw stored
     # int16 values have different zero counts in these McGill assets.
     values = np.asarray(image.get_fdata(), dtype=np.float64)
@@ -237,7 +239,7 @@ def install_icbm152(archive: Path, output: Path) -> Path:
         if profile.identity == DEFAULT_TEMPLATE_ID:
             import nibabel as nib
 
-            original = load_spatial_mm(staged / paths["mask"])
+            original = load_spatial_mm(staged / paths["mask"], mmap=False)
             binary = nib.Nifti1Image(
                 (original.get_fdata() > 0.5).astype(np.uint8), original.affine
             )
