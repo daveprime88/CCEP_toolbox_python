@@ -23,11 +23,14 @@ review and CLI export. It is not the agreed complete first release. Keep the
    handling, mixed-rate/discontinuous EDF and ambiguous-label behavior, annotation
    grammar and time-origin cases, result-file/reference switching, all scientific
    parameter controls, and responsive cancellation for realistic recordings.
-4. **Imaging completion (WP3b/WP2/WP5).** Port manual reorientation, full image
-   selection/registration/segmentation state, coordinate session compatibility,
-   atlas/tissue shape sampling and 3D displays. Review normalization/template
-   choices and the user's SPM12/ANTs comparison resource. The trade study and
-   staged six-tissue normalization candidate are now implemented; compare them
+4. **Imaging completion (WP3b/WP2/WP5).** Manual/automatic header reorientation,
+   source-derived shape/tissue/atlas sampling, explicit SPM pull fields and the
+   linear ElectrodeArray acquisition importer now have candidate adapters. Complete
+   GUI registration/segmentation state, full historical session round-tripping,
+   verified DICOM/Analyze imports and 3D displays. The supplied McGill bundle is
+   installed and checked, but lacks six-tissue priors and an atlas-name table.
+   Review those assets and the user's SPM12/ANTs comparison resource. The trade
+   study and staged six-tissue normalization candidate are implemented; compare them
    with representative SPM cases before choosing scientific defaults. In particular,
    verify N4/segmentation mask choices, iterative estimation, the six-class tissue
    model, cropped-field behavior, and discrete SPM modulation versus pull-Jacobian

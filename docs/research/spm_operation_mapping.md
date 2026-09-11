@@ -86,7 +86,18 @@ Before entering ITK/ANTs, compare the affine geometry actually read by both libr
 7. **GUI-mediated numeric precision.** Tissue samples pass through SPM intensity display text and single precision before mean; positions go through `num2str`. Exact capture needs these intermediates, not only raw image arrays.
 8. **Input and failure quirks.** Missing-tissue check repeats GM rather than checking CSF (`CCEPTissueProbCalc.m:83`); custom atlas path leaves `BBox` undefined (`:98–105,207`). These are recorded historical failures; a Python validation improvement can be explicit without pretending the original accepted those inputs.
 
-## Next commits and tests
+## Implementation update (11 September 2026)
+
+The transform bundle, named registration tasks, separate masks, prior propagation,
+normalized probability/density roles, legacy shape/atlas samplers, MarsBaR
+rasterization and SPM pull adapter now have Python implementations. Header
+reorientation and linear ElectrodeArray acquisition import are also available.
+See [implementation and template experiments](ants_icbm152_implementation.md).
+The list below is the original work breakdown; genuine MATLAB captures, complete
+historical sessions, SPM-default output-grid compatibility and outcome acceptance
+are still pending. Source-derived checks do not close those gates.
+
+## Original proposed commits and tests
 
 1. **Transform artifacts and geometry boundary.** Add explicit step inversion, reference-space identity, input/output hashes, geometry checks and reusable image/point apply functions. Test asymmetric affine translation plus rotation about a nonzero centre, reverse round-trip, nonlinear composition, landmark/image-impulse agreement and RAS/LPS signs. Affine-only inverse testing is mandatory; identity alone misses the bug.
 2. **Explicit registration presets.** Separate CT-to-T1 rigid from T1-to-template nonlinear use cases. Persist all effective parameters, including initialization, masks, sampling, smoothing units, iterations, precision, threads and library version. Current ANTs defaults include center-of-mass initialization, multiresolution schedules and single precision; changing installed ANTs can otherwise change the workflow unnoticed. [ANTsPy registration source](https://antspy.readthedocs.io/en/stable/_modules/ants/registration/registration.html)

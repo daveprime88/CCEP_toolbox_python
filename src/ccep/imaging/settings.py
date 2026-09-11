@@ -8,7 +8,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 class RegistrationSettings(BaseModel):
-    model_config = ConfigDict(extra="forbid", frozen=True)
+    model_config = ConfigDict(extra="forbid", frozen=True, allow_inf_nan=False)
     recipe: Literal["ants-defaults-v1", "explicit-v1"] = "ants-defaults-v1"
     aff_metric: Literal["mattes", "GC", "meansquares"] = "mattes"
     aff_sampling: int = Field(default=32, ge=2)

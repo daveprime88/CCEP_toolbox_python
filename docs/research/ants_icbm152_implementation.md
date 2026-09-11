@@ -118,3 +118,10 @@ This corrects a Python runtime adapter defect; it does not change the scientific
 recipe or claim cross-platform bitwise reproducibility.
 [ANTs environment controls](https://github.com/ANTsX/ANTsPy/wiki/Important-environment-variables),
 [ANTs configuration implementation](https://antspy.readthedocs.io/en/stable/_modules/ants/config.html).
+
+A repeat of both McGill cases through the new worker, without an external thread
+environment setting, reproduced all reported landmark errors exactly. Results are
+retained in `artifacts/template-study/ants-worker-v2`; timings were 14.80 s for T1
+and 2.61 s for T2, including worker startup. Native optimizer parameters now reject
+nonfinite values before dispatch, including positive infinity in step/smoothing
+settings that previously satisfied only a nonnegative-range check.

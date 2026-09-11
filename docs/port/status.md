@@ -23,7 +23,7 @@ adapters. SimpleITK is now restricted to the optional release comparison workflo
 
 ## Evidence and limits
 
-- macOS arm64 Python 3.11.15: **88 tests pass**, including Qt and ANTsPy 0.6.3.
+- macOS arm64 Python 3.11.15: **91 tests pass**, including Qt and ANTsPy 0.6.3.
   Ruff, Black and Pyright pass in this full environment.
 - Earlier pre-recreation macOS arm64 Python 3.14.6 run: **55 tests passed**, one ANTs test module was skipped.
   Core, Qt and NIfTI review install and execute with independent resolution.
@@ -34,9 +34,9 @@ adapters. SimpleITK is now restricted to the optional release comparison workflo
 - `uv.lock` currently reflects ANTsPy's SciPy constraint (SciPy 1.15.3). Use
   Python 3.11 with this full-development lock. Python 3.14 core/GUI was tested
   through an independent pip-style resolution using newer SciPy, not this lock.
-- The ANTs-only implementation at `a8bf327` passed all 13 ordinary CI jobs;
+- The named ANTs CLI recipes at `977db2c` passed all 13 ordinary CI jobs;
   SimpleITK is excluded from those jobs and retained only in a manual release workflow.
-  [Implementation run](https://github.com/daveprime88/CCEP_toolbox_python/actions/runs/34583800658).
+  [Implementation run](https://github.com/daveprime88/CCEP_toolbox_python/actions/runs/34585039344).
 - Earlier CI evidence: restored GitHub CI passed for the normalization implementation at `0876fea`: core
   Python 3.11/3.14 on Windows/macOS/Linux, core 3.12/3.13 on Linux, integrated
   Qt/ANTs/type checks on Linux 3.11, and package build/install.

@@ -217,3 +217,9 @@ def test_legacy_electrode_import_retains_source_and_rejects_curved_positions(tmp
     write_mat(curved, dict(ElectrodeArray=electrodes))
     with pytest.raises(ValueError, match="differ from endpoint"):
         import_electrodes(curved, native, tmp_path / "curved.json")
+
+
+@pytest.mark.parametrize("field", ["grad_step", "flow_sigma", "total_sigma"])
+def test_registration_rejects_nonfinite_native_optimizer_parameters(field):
+    with pytest.raises(ValueError, match="finite"):
+        RegistrationSettings(**{field: float("inf")})
