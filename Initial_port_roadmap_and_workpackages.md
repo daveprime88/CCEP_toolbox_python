@@ -257,3 +257,13 @@ above 1e-6, with probability range/sum/brain-coverage checks. See
 [template implementation](docs/port/icbm152_2009a.md). This does not change the
 six-class normalization contract or establish SPM acceptance; the additional
 whole-head classes remain separate inputs.
+
+### Follow-up: repository assets and three-class production direction
+
+The requested five unchanged 2009a T1/T2/GM/WM/CSF NIfTIs are versioned under
+`MNI atlases` with Git LFS, provenance and the original licence. The plan is to use
+GM/WM/CSF for production CCEP tissue calculations, with explicit brain-mask
+handling and SPM outcome validation. Six-class support is an existing candidate,
+not an inherent downstream requirement. The three-class recipe is not implemented
+yet. See the [current checked-off roadmap](docs/port/roadmap-checklist.md); this
+clarification supersedes the earlier blanket missing-six-prior blocker.

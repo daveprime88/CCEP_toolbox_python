@@ -54,6 +54,11 @@ jobs:
       - if: runner.os == 'Linux'
         run: sudo apt-get update && sudo apt-get install -y libegl1 libopengl0
       - run: uv sync --locked --extra gui --extra imaging --group gui-tests
+      - name: Fetch and check the five MNI LFS assets
+        if: runner.os == 'Linux' && matrix.python == '3.11'
+        run: |
+          git lfs pull --include="MNI atlases/*.nii"
+          uv run --no-sync python tools/check_mni_atlases.py
       - run: uv run --no-sync python tools/check.py
   package:
     runs-on: ubuntu-latest

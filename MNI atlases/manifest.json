@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "identity": "ICBM152-nonlinear-symmetric-2009a",
+  "source_url": "https://nist.mni.mcgill.ca/icbm-152-nonlinear-atlases-2009/",
+  "archive_sha256": "97068359213b5ec1b717f37a65ff260d1b8314954d8c6f573d3d047f574a838a",
+  "assets": {
+    "t1": {
+      "path": "mni_icbm152_t1_tal_nlin_sym_09a.nii",
+      "sha256": "6fe69845e234c9e4ca54564f13a5ad214746970a5a1a0eedb4a23d9af59ba8a5"
+    },
+    "t2": {
+      "path": "mni_icbm152_t2_tal_nlin_sym_09a.nii",
+      "sha256": "b83be729eb20602108252299dac497e300cace442564b897ff98716ebf2320d1"
+    },
+    "gm": {
+      "path": "mni_icbm152_gm_tal_nlin_sym_09a.nii",
+      "sha256": "74d0a1d9952f315780a5262968969330742f97f5fb9ee2d3614304796ef6b0a7"
+    },
+    "wm": {
+      "path": "mni_icbm152_wm_tal_nlin_sym_09a.nii",
+      "sha256": "66d14afae0ef134324c70f39c811ec436b01a3a1ac0da4fe2551ac6066860921"
+    },
+    "csf": {
+      "path": "mni_icbm152_csf_tal_nlin_sym_09a.nii",
+      "sha256": "3dfe970c58abcdd44f75ee683e1ecff81b085d6101d5b506e6abef7c0fa28e0f"
+    }
+  }
+}

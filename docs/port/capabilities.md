@@ -36,7 +36,7 @@ progress; this matrix defines the remaining first-release obligations.
 | F26 | Imaging selection/preprocessing: MRI and CT Coregistration routine/CCEPImageSelectMenu, Preprocess/CCEPImageImport, CCEPMRICTPreprocessing | MRI+CT or second MRI, state/cancellation, persisted imaging metadata |
 | F27 | Manual reorientation: AutoReorient, CheckReg and inline SPM callbacks | Origin/rotation around chosen point; world/voxel conventions and overlays |
 | F28 | Realignment/coregistration: RealignmentFunc, CoregFunc | CT→MRI and extra images; landmarks mm, interpolation and repeated runs |
-| F29 | Bias/segmentation/normalization: CCEPSegmentFunc | Six priors, class labels, native/standard maps, transform direction and images |
+| F29 | Bias/segmentation/normalization: CCEPSegmentFunc | SPM six-class reference; proposed three-class ANTs outcome comparison, native/standard maps, transform direction and images |
 | F30 | Coordinate acquisition: CoOrdGrabGui/CCEPSPMCoOrdGUIInit, CCEPStartCoOrdAcquire, CCEPEndCoOrdAcquire | Counts/endpoints/reacquire, interpolation, voxel and world coordinates |
 | F31 | ROI warp: CCEPROICreateandWarp, ShapeWarp, CCEPProcessCoOrds | 1.5mm sphere, 1mm target grid, >=.99 / >=.95 fallback, MNI positions |
 | F32 | Tissue/atlas lookup: CCEPTissueProbCalc, TissueProbCylinderCreate, CylinderCreation, RotationalAffine, VectorTangentNorm, Preprocess/CCEPGetMNIAnatomicalAreas | Actual sample points, boundaries/labels, probabilities and geometry |

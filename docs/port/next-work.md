@@ -28,13 +28,15 @@ review and CLI export. It is not the agreed complete first release. Keep the
    linear ElectrodeArray acquisition importer now have candidate adapters. Complete
    GUI registration/segmentation state, full historical session round-tripping,
    verified DICOM/Analyze imports and 3D displays. The replacement McGill 2009a bundle is
-   installed and passes the light voxel-count check. It supplies GM/WM/CSF, but
-   still lacks the additional three whole-head tissue classes and a region atlas.
+   installed and passes the light voxel-count check. The requested T1/T2/GM/WM/CSF subset is now versioned with Git LFS.
+   Implement the proposed three-class production recipe with explicit subject brain
+   masking; extra whole-head priors are not required by downstream CCEP tissue
+   calculations. A named region-label atlas and lookup table are still needed.
    Review those assets and the user's SPM12/ANTs comparison resource. The trade
    study and staged six-tissue normalization candidate are implemented; compare them
    with representative SPM cases before choosing scientific defaults. In particular,
-   verify N4/segmentation mask choices, iterative estimation, the six-class tissue
-   model, cropped-field behavior, and discrete SPM modulation versus pull-Jacobian
+   verify N4/segmentation mask choices, iterative estimation, the proposed three-class tissue
+   model against SPM outcomes, cropped-field behavior, and discrete SPM modulation versus pull-Jacobian
    densities. Add matched image outcome reports and unit adapters. Resolve
    ANTs/Python 3.14 installation separately. See `docs/research/` and
    `imaging-verification.md` for completed engineering evidence.
