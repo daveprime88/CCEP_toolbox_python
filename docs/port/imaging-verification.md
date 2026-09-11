@@ -19,10 +19,13 @@ SPM scientific acceptance.
 
 ANTsPy 0.6.3's installed registration implementation reads its package random
 seed configuration; the older `random_seed` kwarg is ignored. Registration calls
-through this module are serialized, use the current deterministic configuration,
-and restore Python/NumPy RNG state and environment settings afterward. External
-concurrent calls directly into ANTs are not coordinated by this module. Run
-imaging jobs in separate processes when mixing third-party ANTs code.
+through the public API now run in a fresh process with the single-thread setting
+present at startup. ANTs/ITK can initialize native thread state before a later
+Python environment change takes effect. The worker isolates registration from
+prior notebook/native calls and leaves the caller's Python/NumPy RNG and environment
+unchanged. A regression test initializes ITK with one versus four threads before
+registration and requires identical output arrays. This establishes repeatability
+for that fixture/build, not bitwise equality across operating systems or versions.
 
 On 9 September 2026 an isolated Python 3.14 installation succeeded for core/Qt,
 but `uv pip install --only-binary=:all: --dry-run antspyx` reported no usable wheel.

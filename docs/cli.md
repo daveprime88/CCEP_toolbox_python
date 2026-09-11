@@ -241,3 +241,9 @@ captured-cloud positions for the library; SPM GUI string-rounding remains unveri
 header-only application to the original decoded voxels. It writes the smoothed
 source, registration and `reorientation.json` for review. It does not reproduce
 SPM affreg's optimizer or choose a template implicitly.
+
+Registration calls use a fresh ANTs worker process with one ITK thread configured
+at startup. This is automatic for library and CLI use, including notebooks that
+have already used ANTs. The worker preserves the caller's random state and thread
+environment. The same build/fixture has API/CLI equality checks; cross-platform
+or cross-version bitwise equality is not promised.

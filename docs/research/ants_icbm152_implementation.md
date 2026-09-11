@@ -10,6 +10,7 @@ are retained solely for manually dispatched release comparisons in
 | Recommendation | Implementation and evidence |
 |---|---|
 | Explicit task recipes | `task_settings`: rigid Mattes MI for CT→MRI; affine initialization plus CC SyN (radius 4) for T1→template. These are candidate parameters, not accepted SPM equivalents. Earlier generic recipes remain explicitly selectable. |
+| Repeatable registration | Fresh worker with one ITK thread from process startup; API/CLI array equality tested after prior one/four-thread native operations. Caller RNG/environment preserved. |
 | Registration masks | Separate fixed/moving binary masks, applied at all stages and recorded by checksum. CT intensity values are not passed through N4. |
 | Separate estimation masks | Normalization accepts a bias-estimation mask separately from the six-tissue segmentation mask, plus optional fixed/moving registration masks. Omitted bias mask preserves the earlier shared-mask behavior. |
 | Template identity | Local McGill ZIP importer checks the exact asset set, grids, finite data, binary masks and integer atlas IDs; retains COPYING and hashes. Load verifies artifacts before use. |
@@ -94,3 +95,17 @@ outputs, atlas lookup tables, captured random/contact sample coordinates and
 predeclared scientific tolerances remain required. Full ANTsPy/Python 3.14 support
 remains unresolved. The completed synthetic and template checks do not remove
 these first-release requirements.
+
+## Reproducibility correction
+
+The single-thread setting must precede native ITK initialization. Running the
+registration API after native image operations in an existing process exposed
+output differences despite the earlier adapter setting the environment around
+`ants.registration`. A two-process test with prior one/four-thread initialization
+failed with a maximum intensity difference of 0.00327 on the synthetic fixture.
+The same test passes with the new registration worker, without relaxing equality.
+The existing API-versus-CLI test also passes without an external thread setting.
+This corrects a Python runtime adapter defect; it does not change the scientific
+recipe or claim cross-platform bitwise reproducibility.
+[ANTs environment controls](https://github.com/ANTsX/ANTsPy/wiki/Important-environment-variables),
+[ANTs configuration implementation](https://antspy.readthedocs.io/en/stable/_modules/ants/config.html).

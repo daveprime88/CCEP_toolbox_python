@@ -52,6 +52,39 @@ def register(
     fixed_mask: Path | None = None,
     moving_mask: Path | None = None,
 ) -> Registration:
+    """Register in an isolated ANTs process with a single thread from startup.
+
+    ITK caches thread settings on first use; changing the environment later is
+    insufficient in notebooks that have already loaded/processed an ANTs image.
+    Paths cross the worker boundary, avoiding copies of large volumes over IPC.
+    """
+    from ccep.imaging.registration_worker import RegistrationRequest, run_registration
+
+    return run_registration(
+        RegistrationRequest(
+            fixed=fixed.resolve(),
+            moving=moving.resolve(),
+            output=output.resolve(),
+            transform=transform,
+            seed=seed,
+            settings=settings or RegistrationSettings(),
+            fixed_mask=fixed_mask.resolve() if fixed_mask is not None else None,
+            moving_mask=moving_mask.resolve() if moving_mask is not None else None,
+        )
+    )
+
+
+def _register_in_process(
+    fixed: Path,
+    moving: Path,
+    output: Path,
+    *,
+    transform: Literal["Rigid", "Affine", "SyN"] = "Rigid",
+    seed: int = 1729,
+    settings: RegistrationSettings | None = None,
+    fixed_mask: Path | None = None,
+    moving_mask: Path | None = None,
+) -> Registration:
     """Resample moving image into fixed image space; never overwrite source images."""
     settings = settings or RegistrationSettings()
     if not 0 <= seed < 2**32:
@@ -150,6 +183,7 @@ def register(
                 initialization=settings.initialization,
                 seed=seed,
                 threads=1,
+                execution="isolated worker; ITK thread setting present at startup",
                 transform_bundle="transforms.json",
                 transform_bundle_sha256=sha256(bundle_path),
                 forward=[str(p) for p in forward],

@@ -105,6 +105,8 @@ def test_registration_refuses_manifest_if_source_changes_during_native_call(
     moving = tmp_path / "moving.nii.gz"
     save_mm(nib.Nifti1Image(values, np.eye(4)), fixed)
     save_mm(nib.Nifti1Image(values, np.eye(4)), moving)
+    from ccep.imaging.ants_backend import _register_in_process
+
     original_registration = ants.registration
 
     def registration_then_edit(*args, **kwargs):
@@ -115,7 +117,7 @@ def test_registration_refuses_manifest_if_source_changes_during_native_call(
     monkeypatch.setattr(ants, "registration", registration_then_edit)
     output = tmp_path / "changed"
     with pytest.raises(ValueError, match="Input changed during processing"):
-        register(fixed, moving, output)
+        _register_in_process(fixed, moving, output)
     assert not (output / "registration.json").exists()
     assert not (output / "transforms.json").exists()
 
@@ -158,3 +160,47 @@ def test_auto_reorientation_keeps_original_sampling(tmp_path):
         result.affine[:3, :3].T @ result.affine[:3, :3], np.eye(3), atol=1e-6
     )
     np.testing.assert_array_equal(nib.load(path).affine, np.eye(4))
+
+
+def test_registration_is_independent_of_prior_itk_initialization(tmp_path):
+    """Notebook use after other native operations must match a fresh CLI process."""
+    import json
+    import os
+    import subprocess
+    import sys
+
+    grid = np.indices((24, 24, 24), dtype=float)
+    data = np.exp(-sum((grid[i] - [9, 11, 13][i]) ** 2 for i in range(3)) / 15)
+    source = tmp_path / "source.nii.gz"
+    save_mm(nib.Nifti1Image(data.astype(np.float32), np.eye(4)), source)
+    script = """
+import json, os, random, sys
+from pathlib import Path
+import ants
+import numpy as np
+from ccep.imaging.ants_backend import register
+source, output = map(Path, sys.argv[1:])
+# Force ITK to initialize before the CCEP registration boundary.
+ants.smooth_image(ants.image_read(str(source)), 1)
+random.seed(43)
+np.random.seed(47)
+previous = (random.getstate(), np.random.get_state())
+previous_threads = os.environ["ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS"]
+result = register(source, source, output)
+assert random.getstate() == previous[0]
+assert np.array_equal(np.random.get_state()[1], previous[1][1])
+assert os.environ["ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS"] == previous_threads
+print(json.dumps({"warped": str(result.warped)}))
+"""
+    results = []
+    for threads in ("1", "4"):
+        process = subprocess.run(
+            [sys.executable, "-c", script, str(source), str(tmp_path / threads)],
+            env={**os.environ, "ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS": threads},
+            capture_output=True,
+            text=True,
+            check=True,
+            timeout=60,
+        )
+        results.append(nib.load(json.loads(process.stdout)["warped"]).get_fdata())
+    np.testing.assert_array_equal(*results)

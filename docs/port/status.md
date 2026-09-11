@@ -16,14 +16,14 @@ adapters. SimpleITK is now restricted to the optional release comparison workflo
 | WP1 | Concise README/illustrated guide, complete manual transcription and six original images; 543-file hash inventory, 101 source candidates and 36 capability groups; typed package, Ruff/Black/Pyright, pre-commit and CI | Final asset/runtime dependency audit; complete capability coverage |
 | WP2 | Qt EDF selection/viewing, left channel selector, unipolar/bipolar reference, gain/time/scroll, filtering, annotation add/edit/delete/save/reopen, automatic/manual pulse controls, processing worker/cancellation, saved ERP/result viewer, train-dependent rankings and channel highlighting, historical stimulation geometry/study controls, native image/overlay review and contact acquisition | MATLAB walkthrough; repository/anatomical workflows; registration/segmentation controls, full imaging session compatibility; long-recording performance/cancellation; Windows/Linux GUI acceptance |
 | WP3a | EDF/EDF+ continuous reading/calibration, annotation MAT/JSON, MAT numeric/cell/struct reader candidates, descending-contact Excel map reader, stimulation annotation parser, FIR/epochs/RMS/std/baseline/rank-sum/rank/geometry kernels, explicit anatomy eligibility/scoring, MAT analysis inspection/direct metric comparison; explicit multi-train processing and additive CSV/XLSX/plot/NPZ exports | Reference capture; legacy metadata relabeling and connectivity/repository integration; complete legacy MAT analysis writers/readers and companion discovery; mixed-rate/discontinuous EDF and label corner cases; file-level sample-rate/time-origin quirks |
-| WP3b | Strict geometry, endpoint interpolation, SPM-style absolute pull evaluation, ANTs registration with explicit recipes and portable transform bundles, six-prior segmentation, staged template normalization, full-Jacobian density modulation, image/contact mapping and sphere-warp centroid candidates; executed synthetic ANTs/SimpleITK comparisons | Matched SPM corpus, calibrated scientific criteria, normalization/template choices, atlas/tissue shape sampling, legacy imaging session adapters, manual reorientation and full viewers; ANTsPy Python 3.14 installation/build |
+| WP3b | Strict geometry, endpoint interpolation, SPM-style absolute pull evaluation, ANTs registration with explicit recipes and portable transform bundles, six-prior segmentation, staged template normalization, full-Jacobian density modulation, image/contact mapping and sphere-warp centroids, source-derived shape/tissue/atlas sampling, McGill asset importer, SPM field adapter, manual/automatic header reorientation and electrode acquisition import; ANTs-only template study | Matched SPM corpus, calibrated scientific criteria, six-class template priors and atlas names, full legacy imaging session adapters and viewers; ANTsPy Python 3.14 installation/build |
 | WP4 | Analytic, edge, GUI interaction, API/CLI equivalence, JSON-error, reference-integrity, persistence and packaged-playbook tests; isolated Python 3.11 and 3.14 environments | Full capability coverage and corpus parity, author acceptance, OS matrix, performance, final package publication |
 | WP5 | inspect/validate/process/export/compare/compare-mat/annotations/reference-check/reference-replay and image commands, structured diagnostics, provenance, explicit config and collision handling | Extend commands as remaining scientific workflows are verified |
 | WP6 | One authoritative Codex playbook shipped in the package; discovery/install commands, packaged imaging branch; executable end-to-end recording/normalization commands and failure tests | Live agent-assisted researcher walkthrough and complete first-release scientific operations |
 
 ## Evidence and limits
 
-- macOS arm64 Python 3.11.15: **83 tests pass**, including Qt and ANTsPy 0.6.3.
+- macOS arm64 Python 3.11.15: **84 tests pass**, including Qt and ANTsPy 0.6.3.
   Ruff, Black and Pyright pass in this full environment.
 - Earlier pre-recreation macOS arm64 Python 3.14.6 run: **55 tests passed**, one ANTs test module was skipped.
   Core, Qt and NIfTI review install and execute with independent resolution.
@@ -34,7 +34,10 @@ adapters. SimpleITK is now restricted to the optional release comparison workflo
 - `uv.lock` currently reflects ANTsPy's SciPy constraint (SciPy 1.15.3). Use
   Python 3.11 with this full-development lock. Python 3.14 core/GUI was tested
   through an independent pip-style resolution using newer SciPy, not this lock.
-- Restored GitHub CI passed for the normalization implementation at `0876fea`: core
+- The ANTs-only implementation at `a8bf327` passed all 13 ordinary CI jobs;
+  SimpleITK is excluded from those jobs and retained only in a manual release workflow.
+  [Implementation run](https://github.com/daveprime88/CCEP_toolbox_python/actions/runs/34583800658).
+- Earlier CI evidence: restored GitHub CI passed for the normalization implementation at `0876fea`: core
   Python 3.11/3.14 on Windows/macOS/Linux, core 3.12/3.13 on Linux, integrated
   Qt/ANTs/type checks on Linux 3.11, and package build/install.
   [Completed run](https://github.com/daveprime88/CCEP_toolbox_python/actions/runs/34361112425).
