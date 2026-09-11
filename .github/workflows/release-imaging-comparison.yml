@@ -1,0 +1,24 @@
+name: Optional release imaging comparison
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+
+  registration-benchmark:
+    runs-on: ubuntu-latest
+    env:
+      ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS: '1'
+      MPLCONFIGDIR: ${{ github.workspace }}/.matplotlib-cache
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: astral-sh/setup-uv@v10.0.1
+        with:
+          python-version: '3.11'
+      - run: uv sync --locked --extra imaging --group imaging-benchmarks
+      - run: uv run --no-sync python tools/benchmark_registration.py --output artifacts/ci-registration --repeats 2 --sitk-bounded-step --require-success
+      - uses: actions/upload-artifact@v7.0.1
+        if: always()
+        with:
+          name: synthetic-registration-study
+          path: artifacts/ci-registration

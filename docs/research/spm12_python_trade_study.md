@@ -6,6 +6,14 @@ feature in SPM. This is a source and literature comparison; it does **not** repo
 a completed patient-data benchmark. Numerical acceptance against the author's
 MATLAB/SPM reference resources remains pending.
 
+## Implementation decision (11 September 2026)
+
+Production uses ANTsPy only. SimpleITK is restricted to the manually dispatched
+release comparison workflow and optional development dependency group; it is
+absent from the runtime package and ordinary CI. The recommendations below are
+the historical trade study; no additional production registration backend is
+planned.
+
 ## Recommendation
 
 Keep **ANTsPy (`antspyx`, imported as `ants`) as the primary imaging backend**.
