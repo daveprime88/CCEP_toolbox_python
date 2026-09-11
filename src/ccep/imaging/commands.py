@@ -274,7 +274,7 @@ def image_transform_points(
 
 
 def image_template_install(archive: Path, output: Path) -> dict[str, Any]:
-    """Import the supplied McGill ext55 ZIP into a new local template bundle."""
+    """Import a McGill 2009a (preferred) or historical ext55 ZIP into a new bundle."""
     from ccep.imaging.templates import install_icbm152, template_inspect
 
     manifest = install_icbm152(archive, output)
@@ -286,6 +286,15 @@ def image_template_inspect(manifest: Path) -> dict[str, Any]:
     from ccep.imaging.templates import template_inspect
 
     return template_inspect(manifest)
+
+
+def image_template_check(
+    manifest: Path, baseline: Path | None = None
+) -> dict[str, Any]:
+    """Check template/tissue content counts and optionally a frozen count baseline."""
+    from ccep.imaging.templates import check_template
+
+    return check_template(manifest, baseline)
 
 
 def image_template_register(
@@ -300,6 +309,7 @@ def image_template_register(
     from ccep.imaging.templates import load_template
 
     bundle = load_template(template_bundle)
+    registration_mask = bundle.assets.get("registration_mask", bundle.assets["mask"])
     result = register(
         template_bundle.parent / bundle.assets["t1"].path,
         moving,
@@ -307,7 +317,7 @@ def image_template_register(
         transform="SyN",
         seed=seed,
         settings=task_settings(RegistrationTask.t1_to_template),
-        fixed_mask=template_bundle.parent / bundle.assets["mask"].path,
+        fixed_mask=template_bundle.parent / registration_mask.path,
         moving_mask=moving_mask,
     )
     import json
@@ -319,7 +329,8 @@ def image_template_register(
         manifest_sha256=sha256(template_bundle),
         archive_sha256=bundle.archive_sha256,
         fixed_sha256=bundle.assets["t1"].sha256,
-        template_mask_sha256=bundle.assets["mask"].sha256,
+        template_mask_sha256=registration_mask.sha256,
+        original_template_mask_sha256=bundle.assets["mask"].sha256,
     )
     with atomic_binary(output / "template_reference.json") as stream:
         stream.write((json.dumps(reference, indent=2) + "\n").encode())
@@ -516,6 +527,7 @@ def register_commands(app: typer.Typer) -> None:
     app.command("image-normalize")(image_normalize)
     app.command("image-template-install")(image_template_install)
     app.command("image-template-inspect")(image_template_inspect)
+    app.command("image-template-check")(image_template_check)
     app.command("image-template-register")(image_template_register)
     app.command("image-reorient")(image_reorient)
     app.command("image-spm-warp")(image_spm_warp)

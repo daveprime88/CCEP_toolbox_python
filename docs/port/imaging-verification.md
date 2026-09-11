@@ -1,5 +1,9 @@
 # Imaging implementation and evidence
 
+The preferred template is now [symmetric ICBM152 2009a](icbm152_2009a.md). Its
+GM/WM/CSF maps have lightweight content/range/coverage checks and a frozen count
+baseline. Earlier ext55 studies below are historical evidence for that other dataset.
+
 `ccep.imaging.geometry` provides zero-based voxel/RAS+ mm affine transforms,
 RAS↔LPS conversion, endpoint contact interpolation, nearest-neighbour sampling,
 a native 1.5 mm sphere, threshold centroid extraction and an explicit absolute

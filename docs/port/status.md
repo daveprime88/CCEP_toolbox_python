@@ -5,6 +5,9 @@ first release**. Source-derived behavior and synthetic checks do not establish
 MATLAB parity. No MATLAB run, real recording comparison, or author acceptance
 walkthrough has occurred on this machine.
 
+The preferred template is now [symmetric ICBM152 2009a](icbm152_2009a.md), with
+GM/WM/CSF priors and a frozen voxel-count sanity check.
+
 See [ANTs implementation and McGill template checks](../research/ants_icbm152_implementation.md)
 for the new template, masking, contact sampling, SPM-field and acquisition-session
 adapters. SimpleITK is now restricted to the optional release comparison workflow.
@@ -23,7 +26,7 @@ adapters. SimpleITK is now restricted to the optional release comparison workflo
 
 ## Evidence and limits
 
-- macOS arm64 Python 3.11.15: **92 tests pass**, including Qt and ANTsPy 0.6.3.
+- macOS arm64 Python 3.11.15: **101 tests pass** (including the opt-in supplied 2009a archive check), including Qt and ANTsPy 0.6.3.
   Ruff, Black and Pyright pass in this full environment.
 - Earlier pre-recreation macOS arm64 Python 3.14.6 run: **55 tests passed**, one ANTs test module was skipped.
   Core, Qt and NIfTI review install and execute with independent resolution.

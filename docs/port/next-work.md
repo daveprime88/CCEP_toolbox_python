@@ -27,8 +27,9 @@ review and CLI export. It is not the agreed complete first release. Keep the
    source-derived shape/tissue/atlas sampling, explicit SPM pull fields and the
    linear ElectrodeArray acquisition importer now have candidate adapters. Complete
    GUI registration/segmentation state, full historical session round-tripping,
-   verified DICOM/Analyze imports and 3D displays. The supplied McGill bundle is
-   installed and checked, but lacks six-tissue priors and an atlas-name table.
+   verified DICOM/Analyze imports and 3D displays. The replacement McGill 2009a bundle is
+   installed and passes the light voxel-count check. It supplies GM/WM/CSF, but
+   still lacks the additional three whole-head tissue classes and a region atlas.
    Review those assets and the user's SPM12/ANTs comparison resource. The trade
    study and staged six-tissue normalization candidate are implemented; compare them
    with representative SPM cases before choosing scientific defaults. In particular,

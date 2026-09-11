@@ -76,3 +76,20 @@ For a saved original analysis, use `ccep --json inspect RMS.mat`, then
 metrics and indexes without requiring MATLAB to run locally. The JSON report
 states the compared scope and exclusions. Preserve the original recording,
 metadata, effective settings and runtime provenance alongside that MAT file.
+
+
+## Lightweight 2009a template content regression
+
+`imaging/icbm152_sym_2009a_content.json` freezes decoded nonzero counts, counts
+above 1e-6, voxel counts and grids for all ten images in the supplied McGill 2009a
+archive. This is not a MATLAB/SPM capture or scientific acceptance threshold.
+The archive SHA256 identifies the exact input; full images are not committed.
+
+```sh
+ccep --json image-template-check artifacts/templates/icbm152-sym-2009a/template.json --baseline reference/imaging/icbm152_sym_2009a_content.json
+CCEP_ICBM2009A_ZIP=~/Downloads/mni_icbm152_nlin_sym_09a_nifti.zip python -m pytest tests/test_template_2009a.py
+```
+
+The real-archive test is opt-in and skips in ordinary CI; small synthetic tests
+exercise counts, cropped masks, probability validation, coverage and baseline
+mismatches in CI. No download or registration is needed for these checks.

@@ -1,5 +1,9 @@
 # ANTs implementation and McGill template checks
 
+**Template update:** the preferred dataset is now [symmetric ICBM152 2009a](../port/icbm152_2009a.md),
+which includes GM/WM/CSF priors. The ext55 experiments below remain a historical
+record and must not be attributed to the replacement template.
+
 11 September 2026. Production imaging uses ANTsPy; SimpleITK is absent from runtime
 code and ordinary CI. The existing comparison script and optional dependency group
 are retained solely for manually dispatched release comparisons in

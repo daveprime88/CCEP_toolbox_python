@@ -34,8 +34,13 @@ def main() -> None:
     args.output.mkdir(parents=True)
     ants = _ants()
     assets = {}
-    for role in ["t1", "t2", "mask", "atlas"]:
-        original = args.template.parent / bundle.assets[role].path
+    for role in [r for r in ("t1", "t2", "mask", "atlas") if r in bundle.assets]:
+        asset = (
+            bundle.assets.get("registration_mask", bundle.assets["mask"])
+            if role == "mask"
+            else bundle.assets[role]
+        )
+        original = args.template.parent / asset.path
         sampled = ants.resample_image(
             read_ants_mm(original),
             (2, 2, 2),

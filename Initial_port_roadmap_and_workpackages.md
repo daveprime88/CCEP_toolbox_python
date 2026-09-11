@@ -246,3 +246,14 @@ Reopen a high-level decision only if new evidence conflicts with an agreed requi
 - Work-package inputs still required: actual reference environment/data access, the cited SPM12/ANTsPy comparison, detailed dependency/version support (especially ANTsPy on Python 3.14), fixture-specific numerical limits, detailed interface choices, and final acceptance responsibility.
 
 Use this document as the high-level planning baseline. Next, elaborate WP1's complete feature/file inventory and WP3's portable reference-capture specification. Implementation and scientific acceptance remain separate from recording this roadmap.
+
+
+### Template decision: symmetric ICBM152 2009a
+
+The user-selected `mni_icbm152_nlin_sym_09a_nifti.zip` replaces ext55 as the
+preferred template. It supplies GM/WM/CSF maps. A lightweight regression freezes
+all ten original images' decoded nonzero voxel counts, grids and content counts
+above 1e-6, with probability range/sum/brain-coverage checks. See
+[template implementation](docs/port/icbm152_2009a.md). This does not change the
+six-class normalization contract or establish SPM acceptance; the additional
+whole-head classes remain separate inputs.

@@ -168,16 +168,32 @@ ordinary CI and production imaging use ANTsPy. The imaging extra also retains
 NiBabel for NIfTI geometry and the package's existing numerical dependencies.
 
 ```sh
-ccep --json image-template-install ARCHIVE.zip NEW_TEMPLATE_DIRECTORY
+ccep --json image-template-install ~/Downloads/mni_icbm152_nlin_sym_09a_nifti.zip NEW_TEMPLATE_DIRECTORY
 ccep --json image-template-inspect NEW_TEMPLATE_DIRECTORY/template.json
+ccep --json image-template-check NEW_TEMPLATE_DIRECTORY/template.json --baseline reference/imaging/icbm152_sym_2009a_content.json
 ccep --json image-template-register NEW_TEMPLATE_DIRECTORY/template.json native_t1.nii.gz NEW_REGISTRATION --moving-mask native_mask.nii.gz
 ```
 
-The supported archive is McGill `icbm152_ext55_model_sym_2020_nifti.zip`. The
-installer preserves original images, licensing, exact geometry and asset hashes.
-`image-template-register` uses the named T1 affine/CC-SyN candidate with the supplied
-template mask. It performs registration only: the archive contains no six-tissue
-priors. `image-register` now accepts `--fixed-mask` and `--moving-mask` for all stages.
+The preferred archive is McGill **symmetric ICBM152 2009a**, containing T1/T2/PD,
+T2 relaxometry, GM/WM/CSF priors and brain/eye/face masks. Historical ext55 bundles
+remain readable for reproducing earlier experiments. Original images, licensing,
+per-image geometry and hashes are preserved. Eye/face masks retain their cropped
+and/or coarser grids. The importer creates a separate exact-binary registration
+mask after checking the original brain mask's 0/1 scaling tolerance (1e-6).
+
+`image-template-check` performs no registration. It recomputes decoded nonzero
+voxel counts, counts with absolute intensity >1e-6, finite-value/range checks,
+grids and tissue coverage. The optional frozen baseline covers all ten original
+images. A changed count returns exit code 3. GM/WM/CSF are checked individually
+in [0,1] (upper tolerance 1e-6), with combined mass <=1.0001 and positive support
+throughout the brain mask. Their sum is not forced to one or renormalized.
+
+`image-template-register` uses the T1 affine/CC-SyN candidate and the derived
+registration mask. The 2009a archive supplies **three**, not six, tissue priors;
+`image-normalize` still requires separately supplied bone/soft-tissue/background
+priors in addition to GM/WM/CSF. There is no labeled anatomical region atlas in
+2009a. Do not invent either the missing classes or a region-name table.
+`image-register` accepts `--fixed-mask` and `--moving-mask` for all stages.
 Library users can select `task_settings(RegistrationTask.ct_to_mri)` for rigid
 Mattes MI or `task_settings(RegistrationTask.t1_to_template)` for affine/CC SyN.
 CT must remain rigid; pass `transform="Rigid"` to the generic API for that task.

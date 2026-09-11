@@ -1,0 +1,390 @@
+{
+  "schema_version": 1,
+  "identity": "ICBM152-nonlinear-symmetric-2009a",
+  "archive": "mni_icbm152_nlin_sym_09a_nifti.zip",
+  "archive_sha256": "97068359213b5ec1b717f37a65ff260d1b8314954d8c6f573d3d047f574a838a",
+  "content_threshold": 1e-06,
+  "capture": "11 September 2026: decoded each original NIfTI with NiBabel, applied header scaling, counted values !=0 and abs(values)>1e-6; no image processing or registration",
+  "images": {
+    "t1": {
+      "grid": {
+        "shape": [
+          197,
+          233,
+          189
+        ],
+        "affine": [
+          [
+            1.0,
+            0,
+            0,
+            -98.0
+          ],
+          [
+            0,
+            1.0,
+            0,
+            -134.0
+          ],
+          [
+            0,
+            0,
+            1.0,
+            -72.0
+          ],
+          [
+            0,
+            0,
+            0,
+            1.0
+          ]
+        ]
+      },
+      "voxel_count": 8675289,
+      "nonzero_voxels": 8675289,
+      "content_voxels": 8675289
+    },
+    "t2": {
+      "grid": {
+        "shape": [
+          197,
+          233,
+          189
+        ],
+        "affine": [
+          [
+            1.0,
+            0,
+            0,
+            -98.0
+          ],
+          [
+            0,
+            1.0,
+            0,
+            -134.0
+          ],
+          [
+            0,
+            0,
+            1.0,
+            -72.0
+          ],
+          [
+            0,
+            0,
+            0,
+            1.0
+          ]
+        ]
+      },
+      "voxel_count": 8675289,
+      "nonzero_voxels": 8675289,
+      "content_voxels": 8675289
+    },
+    "pd": {
+      "grid": {
+        "shape": [
+          197,
+          233,
+          189
+        ],
+        "affine": [
+          [
+            1.0,
+            0,
+            0,
+            -98.0
+          ],
+          [
+            0,
+            1.0,
+            0,
+            -134.0
+          ],
+          [
+            0,
+            0,
+            1.0,
+            -72.0
+          ],
+          [
+            0,
+            0,
+            0,
+            1.0
+          ]
+        ]
+      },
+      "voxel_count": 8675289,
+      "nonzero_voxels": 8675289,
+      "content_voxels": 8675289
+    },
+    "gm": {
+      "grid": {
+        "shape": [
+          197,
+          233,
+          189
+        ],
+        "affine": [
+          [
+            1.0,
+            0,
+            0,
+            -98.0
+          ],
+          [
+            0,
+            1.0,
+            0,
+            -134.0
+          ],
+          [
+            0,
+            0,
+            1.0,
+            -72.0
+          ],
+          [
+            0,
+            0,
+            0,
+            1.0
+          ]
+        ]
+      },
+      "voxel_count": 8675289,
+      "nonzero_voxels": 2134091,
+      "content_voxels": 2134091
+    },
+    "wm": {
+      "grid": {
+        "shape": [
+          197,
+          233,
+          189
+        ],
+        "affine": [
+          [
+            1.0,
+            0,
+            0,
+            -98.0
+          ],
+          [
+            0,
+            1.0,
+            0,
+            -134.0
+          ],
+          [
+            0,
+            0,
+            1.0,
+            -72.0
+          ],
+          [
+            0,
+            0,
+            0,
+            1.0
+          ]
+        ]
+      },
+      "voxel_count": 8675289,
+      "nonzero_voxels": 1950834,
+      "content_voxels": 1950834
+    },
+    "csf": {
+      "grid": {
+        "shape": [
+          197,
+          233,
+          189
+        ],
+        "affine": [
+          [
+            1.0,
+            0,
+            0,
+            -98.0
+          ],
+          [
+            0,
+            1.0,
+            0,
+            -134.0
+          ],
+          [
+            0,
+            0,
+            1.0,
+            -72.0
+          ],
+          [
+            0,
+            0,
+            0,
+            1.0
+          ]
+        ]
+      },
+      "voxel_count": 8675289,
+      "nonzero_voxels": 1760845,
+      "content_voxels": 1760845
+    },
+    "t2_relaxometry": {
+      "grid": {
+        "shape": [
+          197,
+          233,
+          189
+        ],
+        "affine": [
+          [
+            1.0,
+            0,
+            0,
+            -98.0
+          ],
+          [
+            0,
+            1.0,
+            0,
+            -134.0
+          ],
+          [
+            0,
+            0,
+            1.0,
+            -72.0
+          ],
+          [
+            0,
+            0,
+            0,
+            1.0
+          ]
+        ]
+      },
+      "voxel_count": 8675289,
+      "nonzero_voxels": 2543335,
+      "content_voxels": 2543335
+    },
+    "mask": {
+      "grid": {
+        "shape": [
+          197,
+          233,
+          189
+        ],
+        "affine": [
+          [
+            1.0,
+            0,
+            0,
+            -98.0
+          ],
+          [
+            0,
+            1.0,
+            0,
+            -134.0
+          ],
+          [
+            0,
+            0,
+            1.0,
+            -72.0
+          ],
+          [
+            0,
+            0,
+            0,
+            1.0
+          ]
+        ]
+      },
+      "voxel_count": 8675289,
+      "nonzero_voxels": 1886539,
+      "content_voxels": 1886539
+    },
+    "eye_mask": {
+      "grid": {
+        "shape": [
+          197,
+          103,
+          74
+        ],
+        "affine": [
+          [
+            1.0,
+            0,
+            0,
+            -98.0
+          ],
+          [
+            0,
+            1.0,
+            0,
+            -4.0
+          ],
+          [
+            0,
+            0,
+            1.0,
+            -72.0
+          ],
+          [
+            0,
+            0,
+            0,
+            1.0
+          ]
+        ]
+      },
+      "voxel_count": 1501534,
+      "nonzero_voxels": 1229127,
+      "content_voxels": 1229127
+    },
+    "face_mask": {
+      "grid": {
+        "shape": [
+          46,
+          32,
+          59
+        ],
+        "affine": [
+          [
+            4.0,
+            0,
+            0,
+            -93.19999694824219
+          ],
+          [
+            0,
+            4.0,
+            0,
+            14.925896644592285
+          ],
+          [
+            0,
+            0,
+            4.0,
+            -167.08815002441406
+          ],
+          [
+            0,
+            0,
+            0,
+            1.0
+          ]
+        ]
+      },
+      "voxel_count": 86848,
+      "nonzero_voxels": 86848,
+      "content_voxels": 26861
+    }
+  }
+}

@@ -56,7 +56,9 @@ an explicit six-tissue normalization workflow. Read the
 [ANTsPy–SimpleITK synthetic comparisons](docs/research/registration_benchmarks.md)
 for the backend choice, measured results and remaining scientific validation.
 The [ANTs implementation record](docs/research/ants_icbm152_implementation.md)
-covers the supplied McGill template, named recipes and legacy imaging adapters.
+covers the earlier ext55 experiments, named recipes and legacy imaging adapters.
+The preferred template is now [McGill symmetric ICBM152 2009a](docs/port/icbm152_2009a.md),
+with GM/WM/CSF priors and a lightweight voxel-count regression check.
 SimpleITK is limited to optional release comparisons; ordinary CI uses ANTsPy.
 
 The library installation is `python -m pip install -e .`. Python 3.14 core/GUI

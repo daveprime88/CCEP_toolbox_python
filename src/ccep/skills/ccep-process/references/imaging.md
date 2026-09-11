@@ -51,11 +51,16 @@ folder after review. Never manufacture tissue identity, alter coordinate frames,
 or choose acceptance tolerances merely to make a comparison pass.
 
 
-For the McGill ext55 archive, use `image-template-install` into a new local folder,
-then `image-template-inspect` to verify it. The archive has a CerebrA region atlas,
-not six tissue priors or an atlas ID/name table. `image-template-register` performs
-T1 registration with the ANTs CC candidate; it does not manufacture segmentation
-inputs. SimpleITK is not part of this production workflow.
+Use the supplied **symmetric ICBM152 2009a** archive with `image-template-install`
+into a new folder, then `image-template-check MANIFEST --baseline
+reference/imaging/icbm152_sym_2009a_content.json` from the checkout. Omit the baseline
+option outside the checkout for the bundle's stored-count/range/coverage checks.
+This is a lightweight content check, not a registration or SPM acceptance run.
+The manifest exposes GM/WM/CSF priors; it does not contain the extra three classes
+needed by `image-normalize` or a labeled anatomical region atlas. Preserve the
+original maps. Use `image-template-register` for the ANTs T1 candidate with its
+explicit derived binary brain mask. Historical ext55 bundles remain usable only
+when explicitly selected. SimpleITK is not part of production imaging.
 
 For saved MATLAB acquisitions, `image-import-electrodes MAT NATIVE NEW_SESSION`
 imports validated endpoint/contact data and retains the source identity. The
