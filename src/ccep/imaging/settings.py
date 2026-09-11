@@ -1,5 +1,7 @@
 """Versioned ANTs candidate recipes; parameter choices are not SPM acceptance."""
 
+import math
+from enum import StrEnum
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
@@ -41,7 +43,7 @@ class RegistrationSettings(BaseModel):
             raise ValueError("Affine schedules must be nonempty and have equal lengths")
         if (
             any(
-                i < 0
+                (not math.isfinite(i) or i < 0)
                 for i in (
                     *self.aff_iterations,
                     *self.reg_iterations,
@@ -78,3 +80,33 @@ class RegistrationSettings(BaseModel):
         else:
             result["stages"] = transform
         return result
+
+
+class RegistrationTask(StrEnum):
+    ct_to_mri = "ct-to-mri"
+    t1_to_template = "t1-to-template"
+
+
+def task_settings(task: RegistrationTask) -> RegistrationSettings:
+    """Named candidate recipes; no values here constitute scientific acceptance."""
+    if task not in set(RegistrationTask):
+        raise ValueError("Unknown registration task")
+    if task == RegistrationTask.ct_to_mri:
+        return RegistrationSettings(
+            recipe="explicit-v1",
+            aff_random_sampling_rate=0.5,
+            aff_iterations=(1000, 500, 250, 100),
+            aff_shrink_factors=(8, 4, 2, 1),
+            aff_smoothing_sigmas=(3, 2, 1, 0),
+            smoothing_in_mm=True,
+        )
+    return RegistrationSettings(
+        recipe="explicit-v1",
+        aff_iterations=(1000, 500, 250, 100),
+        aff_shrink_factors=(8, 4, 2, 1),
+        aff_smoothing_sigmas=(3, 2, 1, 0),
+        smoothing_in_mm=True,
+        syn_metric="CC",
+        syn_sampling=4,
+        reg_iterations=(100, 70, 50, 20),
+    )

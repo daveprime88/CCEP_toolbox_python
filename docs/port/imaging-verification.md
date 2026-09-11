@@ -110,3 +110,17 @@ before reading and verify them before publishing completion manifests. A regress
 test replaces an input during an actual ANTs call and requires rejection. This
 protects provenance from ordinary concurrent source edits; use stable inputs for
 processing and retain partial artifacts if the input-change guard fires.
+
+
+## ANTs recommendations implemented (11 September 2026)
+
+The [implementation record](../research/ants_icbm152_implementation.md) describes
+new mask-aware recipes, separate N4/Atropos masks, verified McGill template assets,
+known-motion experiments, native tissue/atlas and legacy shape sampling, original
+MarsBaR rasterization, explicit SPM pull-field import, header-only reorientation
+and acquisition-session import. Earlier statements about a shared-only mask or
+unimplemented shape/field helpers describe the preceding development stage.
+
+Ordinary CI no longer installs SimpleITK. Optional release comparisons remain in
+a separate manually dispatched workflow. ANTs is the only production imaging
+engine; NiBabel/NumPy retain their file and geometry roles.

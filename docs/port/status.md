@@ -1,9 +1,13 @@
 # Implementation and verification status
 
-Updated 10 September 2026. This is a working development port, **not the complete
+Updated 11 September 2026. This is a working development port, **not the complete
 first release**. Source-derived behavior and synthetic checks do not establish
 MATLAB parity. No MATLAB run, real recording comparison, or author acceptance
 walkthrough has occurred on this machine.
+
+See [ANTs implementation and McGill template checks](../research/ants_icbm152_implementation.md)
+for the new template, masking, contact sampling, SPM-field and acquisition-session
+adapters. SimpleITK is now restricted to the optional release comparison workflow.
 
 ## Work packages
 
@@ -19,7 +23,7 @@ walkthrough has occurred on this machine.
 
 ## Evidence and limits
 
-- macOS arm64 Python 3.11.15: **71 tests pass**, including Qt and ANTsPy 0.6.3.
+- macOS arm64 Python 3.11.15: **83 tests pass**, including Qt and ANTsPy 0.6.3.
   Ruff, Black and Pyright pass in this full environment.
 - Earlier pre-recreation macOS arm64 Python 3.14.6 run: **55 tests passed**, one ANTs test module was skipped.
   Core, Qt and NIfTI review install and execute with independent resolution.

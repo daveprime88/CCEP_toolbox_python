@@ -71,3 +71,13 @@ def correct_bias(image: Path, mask: Path, output: Path) -> Path:
     output.parent.mkdir(parents=True, exist_ok=True)
     _ants().image_write(corrected, str(output))
     return output
+
+
+def registration_mask(image: Path, mask: Path) -> Any:
+    """Metric masks do not impose N4's positivity requirement on CT/MRI data."""
+    Grid.from_image(image).check(mask)
+    result = read_ants_mm(mask)
+    values = result.numpy()
+    if not np.isin(values, [0, 1]).all() or not values.any():
+        raise ValueError("Registration mask must be binary and nonempty")
+    return result

@@ -144,9 +144,8 @@ SPM's discrete `mwc` writer and remains an outcome-equivalence candidate.
 
 The estimation mask must be binary, nonempty and contain positive MRI intensities.
 All six priors must have support within it. A brain-only mask is not a substitute
-for six whole-head tissues. N4 and Atropos currently share this explicit mask;
-separate bias-estimation/segmentation masks and iterative bias/segmentation
-refinement remain work for representative reference cases. CT HU data are not
+for six whole-head tissues. An optional `bias_mask` separates N4 estimation from the Atropos mask;
+iterative bias/segmentation refinement remains work for representative reference cases. CT HU data are not
 silently shifted or sent through N4. Transferred priors must cover every estimation
 voxel; a coverage failure requires reviewing registration/masks/template choice.
 
@@ -161,3 +160,84 @@ take effect. ANTsPy 0.6.3's built-in SyN ignores those schedule arguments; the
 preserved `ants-defaults-v1` recipe records the backend's hardcoded effective
 schedule separately from requested settings. Neither recipe is accepted as SPM
 scientific equivalence.
+
+### ANTs-first templates and compatibility adapters
+
+SimpleITK comparisons now run only through the manually dispatched release workflow;
+ordinary CI and production imaging use ANTsPy. The imaging extra also retains
+NiBabel for NIfTI geometry and the package's existing numerical dependencies.
+
+```sh
+ccep --json image-template-install ARCHIVE.zip NEW_TEMPLATE_DIRECTORY
+ccep --json image-template-inspect NEW_TEMPLATE_DIRECTORY/template.json
+ccep --json image-template-register NEW_TEMPLATE_DIRECTORY/template.json native_t1.nii.gz NEW_REGISTRATION --moving-mask native_mask.nii.gz
+```
+
+The supported archive is McGill `icbm152_ext55_model_sym_2020_nifti.zip`. The
+installer preserves original images, licensing, exact geometry and asset hashes.
+`image-template-register` uses the named T1 affine/CC-SyN candidate with the supplied
+template mask. It performs registration only: the archive contains no six-tissue
+priors. `image-register` now accepts `--fixed-mask` and `--moving-mask` for all stages.
+Library users can select `task_settings(RegistrationTask.ct_to_mri)` for rigid
+Mattes MI or `task_settings(RegistrationTask.t1_to_template)` for affine/CC SyN.
+CT must remain rigid; pass `transform="Rigid"` to the generic API for that task.
+
+`image-normalize` now defaults to the T1/CC candidate when no explicit settings
+are supplied. Its configuration additionally accepts `bias_mask`,
+`fixed_registration_mask` and `moving_registration_mask`. `mask` remains the
+six-tissue Atropos estimation mask; `bias_mask` defaults to it for compatibility.
+Resolved candidate settings and mask hashes are recorded; omission does not mean
+these values have been accepted against SPM.
+
+```sh
+ccep --json image-spm-warp native.nii.gz y_field.nii.gz warped.nii.gz
+ccep --json image-reorient native.nii.gz rigid_ras_matrix.json reoriented.nii.gz
+ccep --json image-import-electrodes 'Participant Electrodes.mat' native.nii.gz session.json
+ccep --json image-contact-warp registration/transforms.json native.nii.gz template_1mm.nii.gz centre.json NEW_CONTACT_DIRECTORY
+ccep --json image-sample samples.json tissue_result.json
+```
+
+SPM field input must be explicitly known to contain absolute source RAS mm on the
+target grid, with layout `(x,y,z,1,3)` or `(x,y,z,3)`. `--labels` requests nearest
+interpolation. A filename alone cannot distinguish SPM coordinates from ANTs
+LPS displacement. Intensity interpolation is linear, not an assertion of SPM's
+order-4 reslicing parity. Header reorientation consumes a JSON 4×4 proper rigid
+RAS-world matrix and writes new headers with unchanged decoded voxel values.
+
+Electrode import requires `ElectrodeArray` fields `ElectrodeName`, `StartMM`,
+`EndMM`, `NumContacts`, `PosMM`; saved contacts must match linear interpolation.
+The explicit native image must be the image whose geometry gave those coordinates.
+Original MAT metadata remains in the untouched source, linked by checksum. The
+resulting session opens in the current image viewer; it is not a full historical
+MAT-session importer/exporter.
+
+Contact warp consumes a JSON `[x,y,z]` native centre. It retains the original
+MarsBaR sphere rasterization and 0.99/0.95 centroid thresholds, recording the direct
+point result separately. If no warped voxels meet either threshold, it reports the
+legacy failure rather than silently substituting the transformed centre.
+
+Tissue sampling config example (paths relative to JSON):
+
+```json
+{
+  "tissue_maps": ["gm.nii.gz", "wm.nii.gz", "csf.nii.gz"],
+  "native_points_ras_mm": [[10,20,30], [10,20,30], [11,20,30]],
+  "atlas": "atlas.nii.gz",
+  "atlas_labels": {"0":"OUT", "1":"supplied region name"},
+  "template_centre_ras_mm": [12,18,28],
+  "atlas_mode": "exact"
+}
+```
+
+Atlas fields are optional. The centre must be in that atlas's exact space; this
+command performs no registration. Duplicate sample points retain their weight.
+`legacy-closest-absolute` selects the integrated MATLAB lookup convention and
+reports its `1/sample_count` frequency for nonzero labels. This is not a statistical
+confidence. `legacy_shape()` exposes source-derived cylinder/cube/rectangle and
+captured-cloud positions for the library; SPM GUI string-rounding remains unverified.
+
+`image-auto-reorient IMAGE TEMPLATE NEW_DIRECTORY` is the automatic ANTs candidate:
+12 mm FWHM smoothing of the source, rigid fitting to the explicit template, then
+header-only application to the original decoded voxels. It writes the smoothed
+source, registration and `reorientation.json` for review. It does not reproduce
+SPM affreg's optimizer or choose a template implicitly.

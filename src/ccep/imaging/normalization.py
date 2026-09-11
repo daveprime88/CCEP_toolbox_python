@@ -23,7 +23,7 @@ from ccep.imaging.segmentation import (
     correct_bias,
     masked_image,
 )
-from ccep.imaging.settings import RegistrationSettings
+from ccep.imaging.settings import RegistrationSettings, RegistrationTask, task_settings
 from ccep.imaging.transforms import Grid, apply_image, read_ants_mm
 from ccep.reference import sha256
 
@@ -37,6 +37,9 @@ def normalize(
     *,
     seed: int = 1729,
     settings: RegistrationSettings | None = None,
+    bias_mask: Path | None = None,
+    fixed_registration_mask: Path | None = None,
+    moving_registration_mask: Path | None = None,
 ) -> Path:
     """Write a new reviewable pipeline directory; final manifest marks completion.
 
@@ -50,7 +53,21 @@ def normalize(
         raise FileExistsError(output)
     if len(priors) != 6:
         raise ValueError("Supply six template priors in SPM tissue order")
-    input_hashes = snapshot_inputs([image, mask, template, *priors])
+    bias_mask = bias_mask or mask
+    input_hashes = snapshot_inputs(
+        [
+            image,
+            mask,
+            template,
+            *priors,
+            bias_mask,
+            *[
+                p
+                for p in (fixed_registration_mask, moving_registration_mask)
+                if p is not None
+            ],
+        ]
+    )
     _, native_mask = masked_image(image, mask)
     template_grid = Grid.from_image(template)
     read_ants_mm(template)
@@ -60,14 +77,16 @@ def normalize(
         if (values < 0).any() or (values > 1).any():
             raise ValueError("Template priors must contain probabilities in [0,1]")
     output.mkdir(parents=True)
-    corrected = correct_bias(image, mask, output / "bias_corrected.nii.gz")
+    corrected = correct_bias(image, bias_mask, output / "bias_corrected.nii.gz")
     registration = register(
         template,
         corrected,
         output / "registration",
         transform="SyN",
         seed=seed,
-        settings=settings,
+        settings=settings or task_settings(RegistrationTask.t1_to_template),
+        fixed_mask=fixed_registration_mask,
+        moving_mask=moving_registration_mask,
     )
     bundle = registration.manifest.parent / "transforms.json"
     transferred = [
@@ -160,11 +179,22 @@ def normalize(
         json.dumps(
             dict(
                 schema_version=1,
-                recipe="n4-syn-six-prior-atropos-v1",
+                recipe="n4-syn-six-prior-atropos-v2",
                 classes=SPM_TISSUES,
                 inputs=dict(
                     image=input_hashes[image],
                     mask=input_hashes[mask],
+                    bias_mask=input_hashes[bias_mask],
+                    fixed_registration_mask=(
+                        input_hashes[fixed_registration_mask]
+                        if fixed_registration_mask
+                        else None
+                    ),
+                    moving_registration_mask=(
+                        input_hashes[moving_registration_mask]
+                        if moving_registration_mask
+                        else None
+                    ),
                     template=input_hashes[template],
                     priors=[input_hashes[p] for p in priors],
                 ),

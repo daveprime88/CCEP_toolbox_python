@@ -52,7 +52,12 @@ def test_full_normalization_executes_and_preserves_roles(tmp_path):
         reg_iterations=(5, 0),
         initialization="identity",
     )
-    path = normalize(source, mask, source, priors, output, settings=recipe)
+    bias_values = nib.load(mask).get_fdata()
+    bias_values[2, 2, 2] = 0
+    bias_mask = save(tmp_path, "bias_mask.nii.gz", bias_values)
+    path = normalize(
+        source, mask, source, priors, output, settings=recipe, bias_mask=bias_mask
+    )
     body = json.loads(path.read_text())
     assert len(body["roles"]["native_probabilities"]) == 6
     assert len(body["roles"]["normalized_probabilities"]) == 6
@@ -66,12 +71,15 @@ def test_full_normalization_executes_and_preserves_roles(tmp_path):
     )
     np.testing.assert_allclose(posterior_sum[mask_values], 1, atol=1e-4)
     assert body["inputs"]["image"] == sha256(source)
+    assert body["inputs"]["bias_mask"] == sha256(bias_mask)
+    assert body["inputs"]["mask"] != body["inputs"]["bias_mask"]
     config = tmp_path / "config.json"
     config.write_text(
         json.dumps(
             dict(
                 image=str(source),
                 mask=str(mask),
+                bias_mask=str(bias_mask),
                 template=str(source),
                 priors=list(map(str, priors)),
                 registration_settings=recipe.model_dump(mode="json"),

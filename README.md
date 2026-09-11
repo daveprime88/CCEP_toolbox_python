@@ -55,6 +55,9 @@ an explicit six-tissue normalization workflow. Read the
 [SPM12 replacement trade study](docs/research/spm12_python_trade_study.md) and
 [ANTsPy–SimpleITK synthetic comparisons](docs/research/registration_benchmarks.md)
 for the backend choice, measured results and remaining scientific validation.
+The [ANTs implementation record](docs/research/ants_icbm152_implementation.md)
+covers the supplied McGill template, named recipes and legacy imaging adapters.
+SimpleITK is limited to optional release comparisons; ordinary CI uses ANTsPy.
 
 The library installation is `python -m pip install -e .`. Python 3.14 core/GUI
 installation was tested with pip-style dependency resolution; the current full

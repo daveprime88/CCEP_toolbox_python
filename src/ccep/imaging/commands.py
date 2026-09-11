@@ -60,6 +60,8 @@ def image_register(
     transform: Transform = Transform.rigid,
     seed: int = 1729,
     settings: Path | None = None,
+    fixed_mask: Path | None = None,
+    moving_mask: Path | None = None,
 ) -> dict[str, Any]:
     """Register moving into fixed image space with ANTsPy; preserve original images."""
     from ccep.imaging.ants_backend import register
@@ -73,7 +75,16 @@ def image_register(
         if settings
         else None
     )
-    result = register(fixed, moving, output, transform=mode, seed=seed, settings=recipe)
+    result = register(
+        fixed,
+        moving,
+        output,
+        transform=mode,
+        seed=seed,
+        settings=recipe,
+        fixed_mask=fixed_mask,
+        moving_mask=moving_mask,
+    )
     return dict(
         warped=str(result.warped.resolve()),
         transform_bundle=str((output / "transforms.json").resolve()),
@@ -112,7 +123,10 @@ class NormalizationConfig(BaseModel):
     template: Path
     priors: list[Path]
     seed: int = 1729
-    registration_settings: dict[str, Any] = {}
+    registration_settings: dict[str, Any] | None = None
+    bias_mask: Path | None = None
+    fixed_registration_mask: Path | None = None
+    moving_registration_mask: Path | None = None
 
 
 def image_normalize(config: Path, output: Path) -> dict[str, Any]:
@@ -129,7 +143,22 @@ def image_normalize(config: Path, output: Path) -> dict[str, Any]:
         [base / path for path in settings.priors],
         output,
         seed=settings.seed,
-        settings=RegistrationSettings.model_validate(settings.registration_settings),
+        settings=(
+            RegistrationSettings.model_validate(settings.registration_settings)
+            if settings.registration_settings
+            else None
+        ),
+        bias_mask=base / settings.bias_mask if settings.bias_mask else None,
+        fixed_registration_mask=(
+            base / settings.fixed_registration_mask
+            if settings.fixed_registration_mask
+            else None
+        ),
+        moving_registration_mask=(
+            base / settings.moving_registration_mask
+            if settings.moving_registration_mask
+            else None
+        ),
     )
     return dict(
         artifacts=[dict(path=str(manifest.resolve()), sha256=sha256(manifest))],
@@ -238,6 +267,230 @@ def image_transform_points(
     )
 
 
+def image_template_install(archive: Path, output: Path) -> dict[str, Any]:
+    """Import the supplied McGill ext55 ZIP into a new local template bundle."""
+    from ccep.imaging.templates import install_icbm152, template_inspect
+
+    manifest = install_icbm152(archive, output)
+    return dict(manifest=str(manifest.resolve()), **template_inspect(manifest))
+
+
+def image_template_inspect(manifest: Path) -> dict[str, Any]:
+    """Verify template asset hashes and report exact space and available roles."""
+    from ccep.imaging.templates import template_inspect
+
+    return template_inspect(manifest)
+
+
+def image_template_register(
+    template_bundle: Path,
+    moving: Path,
+    output: Path,
+    moving_mask: Path | None = None,
+    seed: int = 1729,
+) -> dict[str, Any]:
+    """Register native T1 to an exact verified template with the ANTs CC candidate."""
+    from ccep.imaging.ants_backend import register
+    from ccep.imaging.settings import RegistrationTask, task_settings
+    from ccep.imaging.templates import load_template
+
+    bundle = load_template(template_bundle)
+    result = register(
+        template_bundle.parent / bundle.assets["t1"].path,
+        moving,
+        output,
+        transform="SyN",
+        seed=seed,
+        settings=task_settings(RegistrationTask.t1_to_template),
+        fixed_mask=template_bundle.parent / bundle.assets["mask"].path,
+        moving_mask=moving_mask,
+    )
+    import json
+
+    if load_template(template_bundle) != bundle:
+        raise ValueError("Template manifest changed during registration")
+    reference = dict(
+        identity=bundle.identity,
+        manifest_sha256=sha256(template_bundle),
+        archive_sha256=bundle.archive_sha256,
+        fixed_sha256=bundle.assets["t1"].sha256,
+        template_mask_sha256=bundle.assets["mask"].sha256,
+    )
+    with atomic_binary(output / "template_reference.json") as stream:
+        stream.write((json.dumps(reference, indent=2) + "\n").encode())
+    return dict(
+        manifest=str(result.manifest.resolve()),
+        template_identity=bundle.identity,
+        template_bundle_sha256=sha256(template_bundle),
+        warped=str(result.warped.resolve()),
+        transform_bundle=str((output / "transforms.json").resolve()),
+        scientific_status="ANTs candidate; SPM acceptance pending",
+    )
+
+
+def image_reorient(image: Path, matrix: Path, output: Path) -> dict[str, Any]:
+    """Apply an explicit rigid RAS-world JSON matrix to the header only."""
+    import json
+
+    from ccep.imaging.legacy_images import reorient_header
+    from ccep.imaging.provenance import snapshot_inputs, verify_unchanged
+
+    inputs = snapshot_inputs([image, matrix])
+    reorient_header(
+        image, np.asarray(json.loads(matrix.read_text()), dtype=float), output
+    )
+    verify_unchanged(inputs)
+    return dict(
+        output=str(output.resolve()),
+        sha256=sha256(output),
+        source_sha256=inputs[image],
+        matrix_sha256=inputs[matrix],
+        interpolation="none; header only",
+    )
+
+
+def image_spm_warp(
+    native: Path, field: Path, output: Path, labels: bool = False
+) -> dict[str, Any]:
+    """Apply an explicitly identified SPM absolute-RAS pull field; never an ANTs displacement."""
+    from ccep.imaging.legacy_images import apply_spm_pull
+    from ccep.imaging.provenance import snapshot_inputs, verify_unchanged
+
+    inputs = snapshot_inputs([native, field])
+    apply_spm_pull(native, field, output, labels=labels)
+    verify_unchanged(inputs)
+    return dict(
+        output=str(output.resolve()),
+        sha256=sha256(output),
+        source_sha256=inputs[native],
+        field_sha256=inputs[field],
+        field_convention="absolute source RAS mm on target grid",
+        interpolation="nearest" if labels else "linear",
+        scientific_status="Field adapter candidate; real SPM capture acceptance pending",
+    )
+
+
+class SamplingConfig(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    tissue_maps: list[Path]
+    native_points_ras_mm: list[list[float]]
+    atlas: Path | None = None
+    atlas_labels: dict[int, str] = {}
+    template_centre_ras_mm: list[float] | None = None
+    atlas_mode: Literal["exact", "legacy-closest-absolute"] = "exact"
+
+
+def image_sample(config: Path, output: Path) -> dict[str, Any]:
+    """Sample captured native tissue points and optionally a template-space atlas centre."""
+    import json
+
+    from ccep.imaging.anatomy import atlas_lookup, tissue_samples
+    from ccep.imaging.images import load_spatial_mm
+    from ccep.imaging.provenance import snapshot_inputs, verify_unchanged
+    from ccep.imaging.transforms import Grid
+
+    config_hash = sha256(config)
+    settings = SamplingConfig.model_validate_json(config.read_text())
+    if len(settings.tissue_maps) != 3:
+        raise ValueError("Supply GM, WM, CSF maps in that order")
+    paths = [config.parent / p for p in settings.tissue_maps]
+    atlas_path = config.parent / settings.atlas if settings.atlas else None
+    inputs = snapshot_inputs([config, *paths, *([atlas_path] if atlas_path else [])])
+    if inputs[config] != config_hash:
+        raise ValueError("Sampling configuration changed while reading")
+    grid = Grid.from_image(paths[0])
+    for path in paths[1:]:
+        grid.check(path)
+    images = [load_spatial_mm(p) for p in paths]
+    points = np.asarray(settings.native_points_ras_mm)
+    result: dict[str, Any] = dict(
+        tissue=tissue_samples(
+            [np.asarray(im.get_fdata(), dtype=np.float64) for im in images],
+            np.asarray(grid.affine),
+            points,
+        ),
+        native_points_ras_mm=points.tolist(),
+    )
+    if atlas_path:
+        if settings.template_centre_ras_mm is None:
+            raise ValueError(
+                "Atlas sampling requires an explicit template-space centre"
+            )
+        atlas = load_spatial_mm(atlas_path)
+        result["atlas"] = atlas_lookup(
+            np.asarray(atlas.get_fdata(), dtype=np.float64),
+            np.asarray(atlas.affine),
+            np.asarray(settings.template_centre_ras_mm),
+            settings.atlas_labels,
+            mode=settings.atlas_mode,
+            native_sample_count=len(points),
+        )
+    result["inputs"] = {str(p): digest for p, digest in inputs.items()}
+    result["scientific_status"] = (
+        "Source-derived sampling; SPM GUI text precision and corpus parity pending"
+    )
+    verify_unchanged(inputs)
+    with atomic_binary(output) as stream:
+        stream.write((json.dumps(result, indent=2) + "\n").encode())
+    return dict(output=str(output.resolve()), sha256=sha256(output), **result)
+
+
+def image_import_electrodes(source: Path, native: Path, output: Path) -> dict[str, Any]:
+    """Import a MATLAB ElectrodeArray acquisition into a verified native session."""
+    from ccep.imaging.legacy_session import import_electrodes
+
+    session = import_electrodes(source, native, output)
+    return dict(
+        output=str(output.resolve()),
+        sha256=sha256(output),
+        electrodes=len(session.electrodes),
+        legacy_sha256=session.legacy_sha256,
+        scientific_status="Source-derived acquisition adapter; original MAT retained",
+    )
+
+
+def image_contact_warp(
+    bundle: Path, native: Path, target: Path, point: Path, output: Path
+) -> dict[str, Any]:
+    """Compare legacy sphere-warp centroid with direct point mapping; keep both roles."""
+    import json
+
+    from ccep.imaging.ants_backend import warp_contact_sphere
+    from ccep.imaging.provenance import snapshot_inputs, verify_unchanged
+    from ccep.imaging.transforms import apply_points
+
+    input_hashes = snapshot_inputs([point, bundle, native, target])
+    centre = np.asarray(json.loads(point.read_text()), dtype=float)
+    centroid = warp_contact_sphere(native, target, bundle, centre, output)
+    direct = apply_points(bundle, centre.reshape(1, 3))[0]
+    comparison = dict(
+        legacy_centroid_ras_mm=centroid.tolist(),
+        direct_point_ras_mm=direct.tolist(),
+        difference_mm=float(np.linalg.norm(centroid - direct)),
+        rasterization="legacy-marsbar",
+        point_sha256=input_hashes[point],
+        note="These are distinct outcomes; no equivalence tolerance applied",
+    )
+    verify_unchanged(input_hashes)
+    with atomic_binary(output / "comparison.json") as stream:
+        stream.write((json.dumps(comparison, indent=2) + "\n").encode())
+    return comparison
+
+
+def image_auto_reorient(
+    image: Path, template: Path, output: Path, seed: int = 1729
+) -> dict[str, Any]:
+    """Estimate ANTs rigid header reorientation against an explicit template."""
+    from ccep.imaging.legacy_images import auto_reorient
+
+    manifest = auto_reorient(image, template, output, seed=seed)
+    return dict(
+        manifest=str(manifest.resolve()),
+        sha256=sha256(manifest),
+        scientific_status="ANTs candidate; SPM comparison pending",
+    )
+
+
 def register_commands(app: typer.Typer) -> None:
     app.command("image-inspect")(image_inspect)
     app.command("image-register")(image_register)
@@ -246,3 +499,12 @@ def register_commands(app: typer.Typer) -> None:
     app.command("image-apply")(image_apply)
     app.command("image-transform-points")(image_transform_points)
     app.command("image-normalize")(image_normalize)
+    app.command("image-template-install")(image_template_install)
+    app.command("image-template-inspect")(image_template_inspect)
+    app.command("image-template-register")(image_template_register)
+    app.command("image-reorient")(image_reorient)
+    app.command("image-spm-warp")(image_spm_warp)
+    app.command("image-sample")(image_sample)
+    app.command("image-import-electrodes")(image_import_electrodes)
+    app.command("image-contact-warp")(image_contact_warp)
+    app.command("image-auto-reorient")(image_auto_reorient)

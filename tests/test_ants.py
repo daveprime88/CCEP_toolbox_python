@@ -118,3 +118,43 @@ def test_registration_refuses_manifest_if_source_changes_during_native_call(
         register(fixed, moving, output)
     assert not (output / "registration.json").exists()
     assert not (output / "transforms.json").exists()
+
+
+def test_registration_masks_recorded_and_invalid_mask_rejected(tmp_path):
+    grid = np.indices((24, 24, 24))
+    values = np.exp(
+        -sum((grid[i] - [10, 12, 14][i]) ** 2 for i in range(3)) / 20
+    ).astype(np.float32)
+    source = tmp_path / "source.nii.gz"
+    mask = tmp_path / "mask.nii.gz"
+    save_mm(nib.Nifti1Image(values, np.eye(4)), source)
+    save_mm(nib.Nifti1Image((values > 0.02).astype(np.float32), np.eye(4)), mask)
+    result = register(
+        source, source, tmp_path / "masked", fixed_mask=mask, moving_mask=mask
+    )
+    import json
+
+    assert json.loads(result.manifest.read_text())["masks"]["all_stages"]
+    save_mm(nib.Nifti1Image(np.zeros_like(values), np.eye(4)), mask)
+    with pytest.raises(ValueError, match="binary and nonempty"):
+        register(source, source, tmp_path / "bad-mask", fixed_mask=mask)
+    assert not (tmp_path / "bad-mask").exists()
+
+
+def test_auto_reorientation_keeps_original_sampling(tmp_path):
+    from ccep.imaging.legacy_images import auto_reorient
+
+    grid = np.indices((24, 24, 24))
+    data = np.exp(-sum((grid[i] - [9, 11, 13][i]) ** 2 for i in range(3)) / 15).astype(
+        np.float32
+    )
+    path = tmp_path / "source.nii.gz"
+    save_mm(nib.Nifti1Image(data, np.eye(4)), path)
+    manifest = auto_reorient(path, path, tmp_path / "auto")
+    assert manifest.is_file()
+    result = nib.load(tmp_path / "auto/reoriented.nii.gz")
+    np.testing.assert_array_equal(result.get_fdata(), data)
+    np.testing.assert_allclose(
+        result.affine[:3, :3].T @ result.affine[:3, :3], np.eye(3), atol=1e-6
+    )
+    np.testing.assert_array_equal(nib.load(path).affine, np.eye(4))

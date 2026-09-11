@@ -136,3 +136,39 @@ def spm_pull_resample(
         ),
         dtype=float,
     ).reshape(absolute_ras_field.shape[:3])
+
+
+def marsbar_sphere(
+    shape: tuple[int, int, int],
+    affine: FloatArray,
+    centre_mm: FloatArray,
+    radius_mm: float = 1.5,
+) -> NDArray[np.float32]:
+    """Source-derived MarsBaR 0.44 voxpts, including its row-norm voxel metric.
+
+    The affine here is zero-based. Shifting the original one-based index bounds
+    by one preserves its rasterization. This differs from a Euclidean world
+    sphere when rotation combines with anisotropic voxels or shear.
+    """
+    centre = world_to_voxel(np.asarray(centre_mm).reshape(1, 3), affine)[0]
+    spacing = np.sqrt(np.sum(np.asarray(affine)[:3, :3] ** 2, axis=1))
+    if not np.isfinite(radius_mm) or radius_mm <= 0 or (spacing <= 0).any():
+        raise ValueError("Invalid sphere radius or image geometry")
+    extent = radius_mm / spacing
+    lower = np.maximum(0, np.ceil(centre - extent).astype(int))
+    upper = np.minimum(np.asarray(shape) - 1, np.floor(centre + extent).astype(int))
+    result = np.zeros(shape, dtype=np.float32)
+    if np.any(lower > upper):
+        raise ValueError("No voxel centres lie within legacy contact sphere")
+    grid = np.stack(
+        np.meshgrid(
+            *(np.arange(a, b + 1) for a, b in zip(lower, upper, strict=True)),
+            indexing="ij",
+        ),
+        axis=-1,
+    )
+    inside = np.linalg.norm((grid - centre) * spacing, axis=-1) <= radius_mm
+    result[tuple(slice(a, b + 1) for a, b in zip(lower, upper, strict=True))] = inside
+    if not result.any():
+        raise ValueError("No voxel centres lie within legacy contact sphere")
+    return result

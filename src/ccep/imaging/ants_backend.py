@@ -49,6 +49,8 @@ def register(
     transform: Literal["Rigid", "Affine", "SyN"] = "Rigid",
     seed: int = 1729,
     settings: RegistrationSettings | None = None,
+    fixed_mask: Path | None = None,
+    moving_mask: Path | None = None,
 ) -> Registration:
     """Resample moving image into fixed image space; never overwrite source images."""
     settings = settings or RegistrationSettings()
@@ -58,13 +60,19 @@ def register(
         raise ValueError("Unsupported registration transform")
     if output.exists():
         raise FileExistsError(output)
-    input_hashes = snapshot_inputs([fixed, moving])
+    input_hashes = snapshot_inputs(
+        [fixed, moving, *[p for p in (fixed_mask, moving_mask) if p is not None]]
+    )
     load_spatial_mm(fixed)
     load_spatial_mm(moving)
     ants = _ants()
     fixed_image, moving_image = read_ants_mm(fixed), read_ants_mm(moving)
     if fixed_image.dimension != 3 or moving_image.dimension != 3:
         raise ValueError("Registration requires 3D volumes")
+    from ccep.imaging.segmentation import registration_mask
+
+    fixed_mask_image = registration_mask(fixed, fixed_mask) if fixed_mask else None
+    moving_mask_image = registration_mask(moving, moving_mask) if moving_mask else None
     output.mkdir(parents=True)
     with _REGISTRATION_LOCK:
         previous_seed = ants.config._random_seed
@@ -74,6 +82,11 @@ def register(
         try:
             ants.config.set_ants_deterministic(True, seed_value=seed)
             arguments = settings.arguments()
+            arguments.update(
+                mask=fixed_mask_image,
+                moving_mask=moving_mask_image,
+                mask_all_stages=True,
+            )
             backend_transform = transform
             if transform == "SyN" and settings.recipe == "explicit-v1":
                 # ANTs 0.6.3's built-in SyN ignores the affine schedule kwargs.
@@ -127,6 +140,11 @@ def register(
                 image_mapping="moving-to-fixed via ANTs apply_transforms",
                 world_coordinates="ANTs LPS mm; public geometry uses RAS mm",
                 transform=transform,
+                masks={
+                    "fixed": input_hashes[fixed_mask] if fixed_mask else None,
+                    "moving": input_hashes[moving_mask] if moving_mask else None,
+                    "all_stages": True,
+                },
                 requested_settings=settings.model_dump(mode="json"),
                 effective_settings=settings.effective(transform),
                 initialization=settings.initialization,
@@ -245,23 +263,45 @@ def segment(
 def warp_contact_sphere(
     native_image: Path,
     target_grid: Path,
-    transforms: list[Path],
+    transforms: list[Path] | Path,
     centre_ras_mm: Any,
     output: Path,
+    *,
+    rasterization: Literal["legacy-marsbar", "world-sphere"] = "legacy-marsbar",
 ) -> Any:
     """Warp a native 1.5 mm sphere onto an explicit 1 mm grid, then centroid it."""
     import nibabel as nib
     import numpy as np
 
-    from ccep.imaging.geometry import sphere, warped_roi_centroid
+    from ccep.imaging.geometry import marsbar_sphere, sphere, warped_roi_centroid
 
     if output.exists():
         raise FileExistsError(output)
+    paths = [native_image, target_grid]
+    if isinstance(transforms, Path):
+        from ccep.imaging.transforms import load_bundle
+
+        bundle = load_bundle(transforms)
+        paths.extend(
+            [
+                transforms,
+                *[
+                    transforms.parent / step.path
+                    for step in (*bundle.forward, *bundle.inverse)
+                ],
+            ]
+        )
+    else:
+        paths.extend(transforms)
+    input_hashes = snapshot_inputs(paths)
     native = cast(nib.Nifti1Image, load_spatial_mm(native_image))
     target = cast(nib.Nifti1Image, load_spatial_mm(target_grid))
     if not np.allclose(target.header.get_zooms()[:3], [1, 1, 1]):
         raise ValueError("Legacy ROI workflow requires a 1 mm target grid")
-    values = sphere(
+    if rasterization not in {"legacy-marsbar", "world-sphere"}:
+        raise ValueError("Unknown sphere rasterization")
+    rasterizer = marsbar_sphere if rasterization == "legacy-marsbar" else sphere
+    values = rasterizer(
         cast(tuple[int, int, int], native.shape[:3]),
         np.asarray(native.affine, dtype=np.float64),
         np.asarray(centre_ras_mm),
@@ -271,29 +311,43 @@ def warp_contact_sphere(
     sphere_image = nib.Nifti1Image(values, native.affine)
     sphere_image.header.set_xyzt_units("mm")
     nib.save(sphere_image, sphere_path)
-    ants = _ants()
-    warped = ants.apply_transforms(
-        fixed=ants.image_read(str(target_grid)),
-        moving=ants.image_read(str(sphere_path)),
-        transformlist=[str(p) for p in transforms],
-        interpolator="linear",
-    )
     warped_path = output / "warped_sphere.nii.gz"
-    ants.image_write(warped, str(warped_path))
+    if isinstance(transforms, Path):
+        from ccep.imaging.transforms import apply_image
+
+        apply_image(transforms, sphere_path, target_grid, warped_path)
+        transform_provenance = dict(bundle_sha256=sha256(transforms))
+    else:
+        ants = _ants()
+        warped = ants.apply_transforms(
+            fixed=read_ants_mm(target_grid),
+            moving=read_ants_mm(sphere_path),
+            transformlist=[str(p) for p in transforms],
+            whichtoinvert=[False] * len(transforms),
+            interpolator="linear",
+        )
+        ants.image_write(warped, str(warped_path))
+        transform_provenance = dict(
+            forward=[
+                dict(path=str(p), sha256=sha256(p), invert=False) for p in transforms
+            ]
+        )
     image = cast(nib.Nifti1Image, nib.load(warped_path))
     centroid = warped_roi_centroid(
         np.asarray(image.get_fdata(), dtype=np.float64),
         np.asarray(image.affine, dtype=np.float64),
     )
+    verify_unchanged(input_hashes)
     (output / "contact.json").write_text(
         json.dumps(
             dict(
                 radius_mm=1.5,
                 centre_ras_mm=np.asarray(centre_ras_mm).tolist(),
                 centroid_ras_mm=centroid.tolist(),
-                native_sha256=sha256(native_image),
-                target_sha256=sha256(target_grid),
-                transforms=[dict(path=str(p), sha256=sha256(p)) for p in transforms],
+                native_sha256=input_hashes[native_image],
+                target_sha256=input_hashes[target_grid],
+                transforms=transform_provenance,
+                rasterization=rasterization,
                 thresholds=[0.99, 0.95],
                 interpolation="linear",
             ),

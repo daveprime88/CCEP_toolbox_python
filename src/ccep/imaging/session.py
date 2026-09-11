@@ -42,9 +42,13 @@ class ImagingSession(BaseModel):
     overlay_sha256: str | None = None
     coordinate_space: Literal["native RAS mm"] = "native RAS mm"
     electrodes: tuple[Electrode, ...] = ()
+    legacy_source: Path | None = None
+    legacy_sha256: str | None = None
 
     @model_validator(mode="after")
     def consistent_identities(self) -> ImagingSession:
+        if (self.legacy_source is None) != (self.legacy_sha256 is None):
+            raise ValueError("Legacy source and checksum must both be supplied")
         names = [e.name for e in self.electrodes]
         if len(names) != len(set(names)):
             raise ValueError("Electrode names must be unique")
@@ -53,6 +57,8 @@ class ImagingSession(BaseModel):
         return self
 
     def verify_inputs(self) -> None:
+        if self.legacy_source and sha256(self.legacy_source) != self.legacy_sha256:
+            raise ValueError("Legacy electrode source differs from the saved session")
         if sha256(self.native_image) != self.native_sha256:
             raise ValueError("Native image differs from the saved session")
         if self.overlay_image and sha256(self.overlay_image) != self.overlay_sha256:
@@ -64,6 +70,11 @@ def load_session(path: Path) -> ImagingSession:
     session = session.model_copy(
         update=dict(
             native_image=(path.parent / session.native_image).resolve(),
+            legacy_source=(
+                (path.parent / session.legacy_source).resolve()
+                if session.legacy_source
+                else None
+            ),
             overlay_image=(
                 (path.parent / session.overlay_image).resolve()
                 if session.overlay_image
@@ -80,6 +91,9 @@ def save_session(path: Path, session: ImagingSession) -> None:
     session = session.model_copy(
         update=dict(
             native_image=session.native_image.resolve(),
+            legacy_source=(
+                session.legacy_source.resolve() if session.legacy_source else None
+            ),
             overlay_image=(
                 session.overlay_image.resolve() if session.overlay_image else None
             ),
