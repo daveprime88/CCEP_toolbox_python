@@ -96,6 +96,59 @@ case. It does not test anatomical label correctness or intersubject registration
 The script above retains the output, hashes, mismatch count and per-region macro
 Dice summary in a separate new folder.
 
+## Full-resolution candidate and contact failure
+
+The full `image-template-register` workflow also completed against the original
+1 mm McGill T1/mask, using the known-motion **2 mm** moving T1 from the study.
+It used affine `(1000,500,250,100)` and CC SyN `(100,70,50,20)`, seed 1729 and one
+ITK thread. The native process started at 19:21:30 and wrote the registration
+manifest at 19:51:49 on 11 September: about **30 minutes 19 seconds**, plus final
+CLI bookkeeping. A macOS process sample reported a 2.2 G current physical footprint
+and 3.5 G peak at the sampling time; these are diagnostic readings, not a portable
+memory budget.
+
+| Measure | Full candidate |
+|---|---:|
+| Withheld landmarks | 20 |
+| Mean target registration error | 0.7665 mm |
+| Median target registration error | 0.7087 mm |
+| Maximum target registration error | 1.5794 mm |
+| Maximum inverse round-trip error | 0.02914 mm |
+
+These errors exceed the short 2 mm study's errors. Both resolution and schedule
+changed, so this is **not an isolated parameter comparison**. The 1 mm fixed image
+contains detail absent from the resampled moving image; nonlinear fitting can
+also move landmarks even though the imposed ground truth is rigid. No parameter
+was retuned on these withheld points and no acceptance limit was inferred afterward.
+The full recipe remains a candidate requiring calibration, not a selected optimum.
+
+Reproduce using the installed bundle and a completed known-motion study:
+
+```sh
+ccep --json image-template-register artifacts/templates/icbm152-ext55-2020/template.json artifacts/template-study/ants-v1/moving_t1.nii.gz artifacts/template-study/NEW_FULL_RUN --moving-mask artifacts/template-study/ants-v1/moving_t1_mask.nii.gz
+python tools/check_template_landmarks.py artifacts/template-study/ants-v1/results.json artifacts/template-study/NEW_FULL_RUN artifacts/template-study/NEW_FULL_RUN/qc.json
+```
+
+The actual outputs are retained in `artifacts/template-study/full-profile`, with
+`verified_qc.json` and the template/registration/transform manifests. The transform
+bundle SHA256 is `424be4fdd6ce8d70fc1b1de47898edd68dd57e4bc764ab8fdf052e188f50bf8b`.
+This run began before the worker-isolation change, with its thread setting already
+present at startup; its scientific recipe is unchanged by that adapter correction.
+
+For study point 16 (one-based), the native 1.5 mm sphere on the coarse 2 mm grid
+warped to a peak of **0.62152**. Neither original threshold (0.99, then 0.95) selected
+a voxel. The direct transformed coordinate exists, but **no legacy centroid is
+available**, and substituting the direct point would change the workflow. This is
+one constructed coarse-voxel failure, not an estimate of patient-case failure rate.
+
+The CLI now retains `contact_failure.json`, both sphere images and a comparison
+report containing the direct coordinate and null centroid/distance. It returns
+exit code 3. A separate analytic regression test reproduces the same failure class
+without fitting: a single occupied 2 mm voxel sampled on a half-voxel-offset 1 mm
+grid peaks at `0.75³ = 0.421875`, below both thresholds. Thresholds and native sphere
+sampling remain unchanged. `passed` in the comparison report means both calculations
+completed; it is not scientific acceptance.
+
 ## Remaining evidence
 
 A six-class normalization run on this archive requires a separately identified

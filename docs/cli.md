@@ -254,3 +254,10 @@ be combined with `--settings` or a conflicting transform. Without a task, the
 existing generic rigid default and custom settings interface remain available.
 `image-template-register` selects the T1 task and records the supplied McGill
 bundle identity automatically.
+
+If `image-contact-warp` cannot extract a centroid at the original 0.99/0.95
+thresholds, it returns exit code 3 and preserves `contact_failure.json`, the native
+and warped sphere images, and `comparison.json`. The comparison still contains
+the direct transformed point, with null legacy centroid/distance. Never substitute
+that point for a missing centroid. `passed` only indicates whether both calculations
+completed; it does not establish scientific equivalence.

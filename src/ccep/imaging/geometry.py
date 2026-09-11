@@ -93,6 +93,10 @@ def sphere(
     return output
 
 
+class ContactThresholdError(ValueError):
+    """No warped ROI voxel meets the preserved MATLAB selection thresholds."""
+
+
 def warped_roi_centroid(data: FloatArray, affine: FloatArray) -> FloatArray:
     """CCEPROICreateandWarp >=.99 selection, then >=.95 fallback, mean world XYZ."""
     if data.ndim != 3 or not np.isfinite(data).all():
@@ -101,7 +105,9 @@ def warped_roi_centroid(data: FloatArray, affine: FloatArray) -> FloatArray:
     if not len(coordinates):
         coordinates = np.argwhere(data >= 0.95)
     if not len(coordinates):
-        raise ValueError("Could not find warped ROI coordinates at legacy thresholds")
+        raise ContactThresholdError(
+            "Could not find warped ROI coordinates at legacy thresholds"
+        )
     return voxel_to_world(coordinates.astype(float), affine).mean(axis=0)
 
 

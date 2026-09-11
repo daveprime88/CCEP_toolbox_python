@@ -69,3 +69,9 @@ sphere-centroid and direct-point outcomes separately. For tissue/atlas values us
 `image-sample` with captured native sample points, ordered GM/WM/CSF maps and,
 optionally, an explicit atlas table and template-space centre. Use installed
 command help and preserve reported precision/legacy-frequency limitations.
+
+For `image-contact-warp`, exit code 3 can indicate that neither original threshold
+selected a voxel. Inspect `contact_failure.json` and the retained sphere images.
+The comparison keeps the direct point with a null legacy centroid/distance; do not
+substitute it or lower thresholds to turn the failure into success. `passed` marks
+calculation completeness, not scientific equivalence.

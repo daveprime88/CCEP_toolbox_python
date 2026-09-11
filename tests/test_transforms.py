@@ -106,3 +106,46 @@ def test_read_geometry_oblique_reflection_and_conflicting_headers(tmp_path):
     nib.save(image, source)
     with pytest.raises(ValueError, match="qform/sform"):
         read_ants_mm(source)
+
+
+def test_contact_comparison_retains_threshold_failure_and_direct_point(
+    tmp_path, capsys
+):
+    from ccep.cli import run
+
+    native = save(
+        tmp_path, "coarse.nii.gz", np.ones((10, 10, 10)), np.diag([2.0, 2, 2, 1])
+    )
+    affine = np.eye(4)
+    affine[:3, 3] = 0.5
+    target = save(tmp_path, "target.nii.gz", np.ones((20, 20, 20)), affine)
+    identity = ants.create_ants_transform(transform_type="AffineTransform", dimension=3)
+    transform = tmp_path / "identity.mat"
+    ants.write_transform(identity, str(transform))
+    bundle = capture_bundle(target, native, (transform,), (transform,), tmp_path)
+    manifest = tmp_path / "transforms.json"
+    manifest.write_text(bundle.model_dump_json())
+    point = tmp_path / "point.json"
+    point.write_text("[8,8,8]")
+    output = tmp_path / "comparison"
+    status = run(
+        [
+            "--json",
+            "image-contact-warp",
+            str(manifest),
+            str(native),
+            str(target),
+            str(point),
+            str(output),
+        ]
+    )
+    body = json.loads(capsys.readouterr().out)
+    assert status == 3 and body["diagnostics"][0]["code"] == "COMPARISON_FAILED"
+    report = json.loads((output / "comparison.json").read_text())
+    assert report["passed"] is False and report["legacy_centroid_ras_mm"] is None
+    assert report["difference_mm"] is None
+    np.testing.assert_allclose(report["direct_point_ras_mm"], [8, 8, 8])
+    failure = json.loads((output / "contact_failure.json").read_text())
+    assert failure["thresholds"] == [0.99, 0.95]
+    np.testing.assert_allclose(failure["warped_peak"], 0.75**3)
+    assert not (output / "contact.json").exists()

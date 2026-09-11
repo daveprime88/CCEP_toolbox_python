@@ -461,20 +461,30 @@ def image_contact_warp(
     import json
 
     from ccep.imaging.ants_backend import warp_contact_sphere
+    from ccep.imaging.geometry import ContactThresholdError
     from ccep.imaging.provenance import snapshot_inputs, verify_unchanged
     from ccep.imaging.transforms import apply_points
 
     input_hashes = snapshot_inputs([point, bundle, native, target])
     centre = np.asarray(json.loads(point.read_text()), dtype=float)
-    centroid = warp_contact_sphere(native, target, bundle, centre, output)
     direct = apply_points(bundle, centre.reshape(1, 3))[0]
+    failure: str | None = None
+    try:
+        centroid = warp_contact_sphere(native, target, bundle, centre, output)
+    except ContactThresholdError as error:
+        centroid, failure = None, str(error)
     comparison = dict(
-        legacy_centroid_ras_mm=centroid.tolist(),
+        passed=centroid is not None,
+        legacy_centroid_ras_mm=centroid.tolist() if centroid is not None else None,
+        legacy_failure=failure,
         direct_point_ras_mm=direct.tolist(),
-        difference_mm=float(np.linalg.norm(centroid - direct)),
+        difference_mm=(
+            float(np.linalg.norm(centroid - direct)) if centroid is not None else None
+        ),
         rasterization="legacy-marsbar",
         point_sha256=input_hashes[point],
-        note="These are distinct outcomes; no equivalence tolerance applied",
+        note="Passed means both calculations completed, not scientific equivalence. Distinct outcomes; no equivalence tolerance applied",
+        artifacts={p.name: sha256(p) for p in output.iterdir() if p.is_file()},
     )
     verify_unchanged(input_hashes)
     with atomic_binary(output / "comparison.json") as stream:

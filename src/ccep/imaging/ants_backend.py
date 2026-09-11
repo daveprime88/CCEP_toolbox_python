@@ -307,7 +307,12 @@ def warp_contact_sphere(
     import nibabel as nib
     import numpy as np
 
-    from ccep.imaging.geometry import marsbar_sphere, sphere, warped_roi_centroid
+    from ccep.imaging.geometry import (
+        ContactThresholdError,
+        marsbar_sphere,
+        sphere,
+        warped_roi_centroid,
+    )
 
     if output.exists():
         raise FileExistsError(output)
@@ -367,10 +372,31 @@ def warp_contact_sphere(
             ]
         )
     image = cast(nib.Nifti1Image, nib.load(warped_path))
-    centroid = warped_roi_centroid(
-        np.asarray(image.get_fdata(), dtype=np.float64),
-        np.asarray(image.affine, dtype=np.float64),
-    )
+    warped_values = np.asarray(image.get_fdata(), dtype=np.float64)
+    try:
+        centroid = warped_roi_centroid(
+            warped_values, np.asarray(image.affine, dtype=np.float64)
+        )
+    except ContactThresholdError as error:
+        verify_unchanged(input_hashes)
+        failure = dict(
+            status="threshold-failure",
+            message=str(error),
+            centre_ras_mm=np.asarray(centre_ras_mm).tolist(),
+            warped_peak=float(warped_values.max()),
+            thresholds=[0.99, 0.95],
+            radius_mm=1.5,
+            rasterization=rasterization,
+            interpolation="linear",
+            native_sha256=input_hashes[native_image],
+            target_sha256=input_hashes[target_grid],
+            transforms=transform_provenance,
+            warped_sha256=sha256(warped_path),
+        )
+        (output / "contact_failure.json").write_text(
+            json.dumps(failure, indent=2) + "\n"
+        )
+        raise
     verify_unchanged(input_hashes)
     (output / "contact.json").write_text(
         json.dumps(
